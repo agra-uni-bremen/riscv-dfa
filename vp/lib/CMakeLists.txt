@@ -1,5 +1,9 @@
 file(GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
+add_executable(taint-test
+        tainttest.cpp
+        )
+
 add_executable(riscv-vp
         main.cpp
         plic.cpp
@@ -11,5 +15,3 @@ add_executable(riscv-vp
         ${HEADERS})
 
 target_link_libraries(riscv-vp ${Boost_LIBRARIES} ${SystemC_LIBRARIES} pthread)
-
-subdirs(hifive)

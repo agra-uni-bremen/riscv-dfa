@@ -12,6 +12,7 @@
 #include "csr.h"
 #include "irq_if.h"
 #include "clint.h"
+#include "taint.hpp"
 
 #include <iostream>
 #include <memory>
@@ -32,41 +33,7 @@ struct RegFile {
 
     int32_t regs[NUM_REGS];
 
-    RegFile() {
-        memset(regs, 0, sizeof(regs));
-    }
-
-    RegFile(const RegFile &other) {
-        memcpy(regs, other.regs, sizeof(regs));
-    }
-
-    void write(uint32_t index, int32_t value) {
-        assert (index <= x31);
-        assert (index != x0);
-        regs[index] = value;
-    }
-
-    int32_t read(uint32_t index) {
-        assert (index <= x31);
-        return regs[index];
-    }
-
-    uint32_t shamt(uint32_t index) {
-        assert (index <= x31);
-        return BIT_RANGE(regs[index], 4, 0);
-    }
-
-    int32_t &operator [](const uint32_t idx) {
-        return regs[idx];
-    }
-
-    void show() {
-        for (int i=0; i<NUM_REGS; ++i) {
-            std::cout << "r[" << i << "] = " << regs[i] << std::endl;
-        }
-    }
-
-    enum e {
+    enum e : uint8_t {
         x0 = 0,
         x1,
         x2,
@@ -134,6 +101,40 @@ struct RegFile {
         t5 = x30,
         t6 = x31,
     };
+
+    RegFile() {
+        memset(regs, 0, sizeof(regs));
+    }
+
+    RegFile(const RegFile &other) {
+        memcpy(regs, other.regs, sizeof(regs));
+    }
+
+    void write(uint32_t index, int32_t value) {
+        assert (index <= x31);
+        assert (index != x0);
+        regs[index] = value;
+    }
+
+    int32_t read(uint32_t index) {
+        assert (index <= x31);
+        return regs[index];
+    }
+
+    uint32_t shamt(uint32_t index) {
+        assert (index <= x31);
+        return BIT_RANGE(regs[index], 4, 0);
+    }
+
+    int32_t &operator [](const uint32_t idx) {
+        return regs[idx];
+    }
+
+    void show() {
+        for (int i=0; i<NUM_REGS; ++i) {
+            std::cout << "r[" << i << "] = " << regs[i] << std::endl;
+        }
+    }
 };
 
 
@@ -148,15 +149,15 @@ struct instr_memory_interface {
 struct data_memory_interface {
     virtual ~data_memory_interface() {}
 
-    virtual int32_t load_word(uint32_t addr) = 0;
-    virtual int32_t load_half(uint32_t addr) = 0;
-    virtual int32_t load_byte(uint32_t addr) = 0;
-    virtual uint32_t load_uhalf(uint32_t addr) = 0;
-    virtual uint32_t load_ubyte(uint32_t addr) = 0;
+    virtual Taint<int32_t> load_word(uint32_t addr) = 0;
+    virtual Taint<int32_t> load_half(uint32_t addr) = 0;
+    virtual Taint<int32_t> load_byte(uint32_t addr) = 0;
+    virtual Taint<uint32_t> load_uhalf(uint32_t addr) = 0;
+    virtual Taint<uint32_t> load_ubyte(uint32_t addr) = 0;
 
-    virtual void store_word(uint32_t addr, uint32_t value) = 0;
-    virtual void store_half(uint32_t addr, uint16_t value) = 0;
-    virtual void store_byte(uint32_t addr, uint8_t value) = 0;
+    virtual void store_word(uint32_t addr, Taint<uint32_t> value) = 0;
+    virtual void store_half(uint32_t addr, Taint<uint16_t> value) = 0;
+    virtual void store_byte(uint32_t addr, Taint<uint8_t> value) = 0;
 };
 
 
@@ -240,11 +241,11 @@ struct DataMemoryProxy : public data_memory_interface {
 
             *((T*)(dmi.mem + (addr - dmi.offset))) = value;
         } else {
-            if (std::is_same<T, uint8_t>::value) {
+            if (std::is_same<T, Taint<uint8_t>>::value) {
                 next_memory->store_byte(addr, value);
-            } else if (std::is_same<T, uint16_t>::value) {
+            } else if (std::is_same<T, Taint<uint16_t>>::value) {
                 next_memory->store_half(addr, value);
-            } else if (std::is_same<T, uint32_t>::value) {
+            } else if (std::is_same<T, Taint<uint32_t>>::value) {
                 next_memory->store_word(addr, value);
             } else {
                 assert(false && "unsupported store operation");
@@ -252,15 +253,15 @@ struct DataMemoryProxy : public data_memory_interface {
         }
     }
 
-    virtual int32_t load_word(addr_t addr) { return _load_data<int32_t>(addr); }
-    virtual int32_t load_half(addr_t addr) { return _load_data<int16_t>(addr); }
-    virtual int32_t load_byte(addr_t addr) { return _load_data<int8_t>(addr); }
-    virtual uint32_t load_uhalf(addr_t addr) { return _load_data<uint16_t>(addr); }
-    virtual uint32_t load_ubyte(addr_t addr) { return _load_data<uint8_t>(addr); }
+    virtual Taint<int32_t> load_word(addr_t addr) { return _load_data<int32_t>(addr); }
+    virtual Taint<int32_t> load_half(addr_t addr) { return _load_data<int16_t>(addr); }
+    virtual Taint<int32_t> load_byte(addr_t addr) { return _load_data<int8_t>(addr); }
+    virtual Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<uint16_t>(addr); }
+    virtual Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<uint8_t>(addr); }
 
-    virtual void store_word(addr_t addr, uint32_t value) { _store_data(addr, value); }
-    virtual void store_half(addr_t addr, uint16_t value) { _store_data(addr, value); }
-    virtual void store_byte(addr_t addr, uint8_t value) { _store_data(addr, value); }
+    virtual void store_word(addr_t addr, Taint<uint32_t> value) { _store_data(addr, value); }
+    virtual void store_half(addr_t addr, Taint<uint16_t> value) { _store_data(addr, value); }
+    virtual void store_byte(addr_t addr, Taint<uint8_t> value) { _store_data(addr, value); }
 };
 
 
@@ -305,15 +306,15 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
 
     int32_t load_instr(addr_t addr) { return _load_data<int32_t>(addr); }
 
-    int32_t load_word(addr_t addr) { return _load_data<int32_t>(addr); }
-    int32_t load_half(addr_t addr) { return _load_data<int16_t>(addr); }
-    int32_t load_byte(addr_t addr) { return _load_data<int8_t>(addr); }
-    uint32_t load_uhalf(addr_t addr) { return _load_data<uint16_t>(addr); }
-    uint32_t load_ubyte(addr_t addr) { return _load_data<uint8_t>(addr); }
+    Taint<int32_t> load_word(addr_t addr) { return _load_data<Taint<int32_t>>(addr); }
+    Taint<int32_t> load_half(addr_t addr) { return _load_data<Taint<int16_t>>(addr); }
+    Taint<int32_t> load_byte(addr_t addr) { return _load_data<Taint<int8_t>>(addr); }
+    Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<Taint<uint16_t>>(addr); }
+    Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<Taint<uint8_t>>(addr); }
 
-    void store_word(addr_t addr, uint32_t value) { _store_data(addr, value); }
-    void store_half(addr_t addr, uint16_t value) { _store_data(addr, value); }
-    void store_byte(addr_t addr, uint8_t value) { _store_data(addr, value); }
+    void store_word(addr_t addr, Taint<uint32_t> value) { _store_data(addr, value); }
+    void store_half(addr_t addr, Taint<uint16_t> value) { _store_data(addr, value); }
+    void store_byte(addr_t addr, Taint<uint8_t> value) { _store_data(addr, value); }
 };
 
 
@@ -383,6 +384,12 @@ struct ISS : public sc_core::sc_module,
         instr_cycles[Opcode::DIVU] = mul_div_cycles;
         instr_cycles[Opcode::REM] = mul_div_cycles;
         instr_cycles[Opcode::REMU] = mul_div_cycles;
+        pc = 0;
+        last_pc = 0;
+        instr_mem = nullptr;
+        mem = nullptr;
+        sys = nullptr;
+        clint = nullptr;
     }
 
     Opcode::mapping exec_step() {
@@ -818,6 +825,7 @@ struct ISS : public sc_core::sc_module,
             case Opcode::URET:
             case Opcode::SRET:
                 assert (false && "not implemented");
+                break;
             case Opcode::MRET:
                 return_from_trap_handler();
                 break;

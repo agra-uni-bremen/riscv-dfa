@@ -115,7 +115,8 @@ void PLIC::transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
 	router.transport(trans, delay);
 }
 
-bool PLIC::hart_0_has_pending_enabled_interrupts() {
+bool PLIC::hart_0_has_pending_enabled_interrupts()
+{
 	return hart_0_get_next_pending_interrupt(true) > 0;
 }
 
