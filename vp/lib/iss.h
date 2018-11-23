@@ -31,7 +31,7 @@ struct RegFile {
         NUM_REGS = 32
     };
 
-    int32_t regs[NUM_REGS];
+    Taint<int32_t> regs[NUM_REGS];
 
     enum e : uint8_t {
         x0 = 0,
@@ -110,29 +110,29 @@ struct RegFile {
         memcpy(regs, other.regs, sizeof(regs));
     }
 
-    void write(uint32_t index, int32_t value) {
+    void write(uint32_t index, Taint<int32_t> value) {
         assert (index <= x31);
         assert (index != x0);
         regs[index] = value;
     }
 
-    int32_t read(uint32_t index) {
+    Taint<int32_t> read(uint32_t index) {
         assert (index <= x31);
         return regs[index];
     }
 
-    uint32_t shamt(uint32_t index) {
+    Taint<int32_t> shamt(uint32_t index) {
         assert (index <= x31);
         return BIT_RANGE(regs[index], 4, 0);
     }
 
-    int32_t &operator [](const uint32_t idx) {
+    Taint<int32_t> &operator [](const uint32_t idx) {
         return regs[idx];
     }
 
     void show() {
         for (int i=0; i<NUM_REGS; ++i) {
-            std::cout << "r[" << i << "] = " << regs[i] << std::endl;
+            std::cout << "r[" << i << "] = " << uint32_t(regs[i]) << " (" << regs[i].getTaintId() << ")" << std::endl;
         }
     }
 };
@@ -162,7 +162,7 @@ struct data_memory_interface {
 
 
 struct direct_memory_interface {
-    uint8_t *mem;
+	Taint<uint8_t> *mem;
     uint32_t offset;
     uint32_t size;
 };
@@ -216,15 +216,15 @@ struct DataMemoryProxy : public data_memory_interface {
             T ans = *((T*)(dmi.mem + (addr - dmi.offset)));
             return ans;
         } else {
-            if (std::is_same<T, int8_t>::value) {
+            if (std::is_same<T, Taint<int8_t>>::value) {
                 return next_memory->load_byte(addr);
-            } else if (std::is_same<T, int16_t>::value) {
+            } else if (std::is_same<T, Taint<int16_t>>::value) {
                 return next_memory->load_half(addr);
-            } else if (std::is_same<T, int32_t>::value) {
+            } else if (std::is_same<T, Taint<int32_t>>::value) {
                 return next_memory->load_word(addr);
-            } else if (std::is_same<T, uint16_t>::value) {
+            } else if (std::is_same<T, Taint<uint16_t>>::value) {
                 return next_memory->load_uhalf(addr);
-            } else if (std::is_same<T, uint8_t>::value) {
+            } else if (std::is_same<T, Taint<uint8_t>>::value) {
                 return next_memory->load_ubyte(addr);
             } else {
                 assert(false && "unsupported load operation");
@@ -253,11 +253,11 @@ struct DataMemoryProxy : public data_memory_interface {
         }
     }
 
-    virtual Taint<int32_t> load_word(addr_t addr) { return _load_data<int32_t>(addr); }
-    virtual Taint<int32_t> load_half(addr_t addr) { return _load_data<int16_t>(addr); }
-    virtual Taint<int32_t> load_byte(addr_t addr) { return _load_data<int8_t>(addr); }
-    virtual Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<uint16_t>(addr); }
-    virtual Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<uint8_t>(addr); }
+    virtual Taint<int32_t> load_word(addr_t addr) { return _load_data<Taint<int32_t>>(addr); }
+    virtual Taint<int32_t> load_half(addr_t addr) { return _load_data<Taint<int16_t>>(addr); }
+    virtual Taint<int32_t> load_byte(addr_t addr) { return _load_data<Taint<int8_t>>(addr); }
+    virtual Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<Taint<uint16_t>>(addr); }
+    virtual Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<Taint<uint8_t>>(addr); }
 
     virtual void store_word(addr_t addr, Taint<uint32_t> value) { _store_data(addr, value); }
     virtual void store_half(addr_t addr, Taint<uint16_t> value) { _store_data(addr, value); }

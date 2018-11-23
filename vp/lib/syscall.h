@@ -4,6 +4,8 @@
 #include "stdint.h"
 #include "assert.h"
 
+#include "taint.hpp"
+
 //see: newlib/libgloss/riscv @ https://github.com/riscv/riscv-newlib/tree/riscv-newlib-2.5.0/libgloss/riscv
 
 #define SYS_exit 93
@@ -56,7 +58,7 @@
 
 
 struct SyscallHandler {
-    uint8_t *mem = 0;       // direct pointer to start of guest memory in host memory
+	Taint<uint8_t> *mem = 0;       // direct pointer to start of guest memory in host memory
     uint32_t mem_offset;    // start address of the memory as mapped into the address space
     uint32_t hp = 0;        // heap pointer
     bool shall_exit = false;
@@ -70,7 +72,7 @@ struct SyscallHandler {
     }
 
 
-    void init(uint8_t *host_memory_pointer, uint32_t mem_start_address, uint32_t heap_pointer_address) {
+    void init(Taint<uint8_t> *host_memory_pointer, uint32_t mem_start_address, uint32_t heap_pointer_address) {
         mem = host_memory_pointer;
         mem_offset = mem_start_address;
         hp = heap_pointer_address;
@@ -79,13 +81,13 @@ struct SyscallHandler {
         max_heap = hp;
     }
 
-    uint8_t *guest_address_to_host_pointer(uintptr_t addr) {
+    Taint<uint8_t> *guest_address_to_host_pointer(uintptr_t addr) {
         assert (mem != nullptr);
 
         return mem + (addr - mem_offset);
     }
 
-    uint8_t *guest_to_host_pointer(void *p) {
+    Taint<uint8_t> *guest_to_host_pointer(void *p) {
         return guest_address_to_host_pointer((uintptr_t)p);
     }
 

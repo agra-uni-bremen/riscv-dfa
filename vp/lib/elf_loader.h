@@ -6,7 +6,7 @@
 
 #include <cstdint>
 #include <vector>
-
+#include "taint.hpp"
 
 // see: http://wiki.osdev.org/ELF_Tutorial
 // for ELF definitions
@@ -115,19 +115,27 @@ struct ELFLoader {
     }
 
 
-    void load_executable_image(uint8_t *dst, uint32_t size, uint32_t offset, bool use_vaddr=true) {
-        for (auto p : get_load_sections()) {
-
+    void load_executable_image(Taint<uint8_t> *dst, uint32_t size, uint32_t offset, bool use_vaddr=true) {
+        for (auto p : get_load_sections())
+        {
             if (use_vaddr) {
                 assert ((p->p_vaddr >= offset) && (p->p_vaddr + p->p_memsz < offset + size));
 
                 //NOTE: if memsz is larger than filesz, the additional bytes are zero initialized (auto. done for memory)
-                memcpy(dst + p->p_vaddr - offset, elf.data() + p->p_offset, p->p_filesz);
+                //memcpy(dst + p->p_vaddr - offset, elf.data() + p->p_offset, p->p_filesz);
+                for(unsigned i = 0; i < p->p_filesz; i++)
+                {
+                	dst[(p->p_vaddr - offset) + i] = elf.data()[p->p_offset + i];
+                }
             } else {
                 assert ((p->p_paddr >= offset) && (p->p_paddr + p->p_memsz < offset + size));
 
                 //NOTE: if memsz is larger than filesz, the additional bytes are zero initialized (auto. done for memory)
-                memcpy(dst + p->p_paddr - offset, elf.data() + p->p_offset, p->p_filesz);
+                //memcpy(dst + p->p_paddr - offset, elf.data() + p->p_offset, p->p_filesz);
+                for(unsigned i = 0; i < p->p_filesz; i++)
+                {
+                	dst[(p->p_paddr - offset) + i] = elf.data()[p->p_offset + i];
+                }
             }
         }
     }

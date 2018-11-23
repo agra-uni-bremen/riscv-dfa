@@ -9,43 +9,50 @@
 
 #include "systemc"
 #include "tlm_utils/simple_target_socket.h"
+#include "taint.hpp"
 
+struct TaintedMemory : public sc_core::sc_module {
+    tlm_utils::simple_target_socket<TaintedMemory> tsock;
 
-struct SimpleMemory : public sc_core::sc_module {
-    tlm_utils::simple_target_socket<SimpleMemory> tsock;
-
-    uint8_t *data;
+    Taint<uint8_t> *data;
     uint32_t size;
 
-    SimpleMemory(sc_core::sc_module_name, uint32_t size)
-        : data(new uint8_t[size]()), size(size) {
-        tsock.register_b_transport(this, &SimpleMemory::transport);
-        tsock.register_get_direct_mem_ptr(this, &SimpleMemory::get_direct_mem_ptr);
+    TaintedMemory(sc_core::sc_module_name, uint32_t size)
+        : data(new Taint<uint8_t>[size]()), size(size) {
+        tsock.register_b_transport(this, &TaintedMemory::transport);
+    }
+
+    ~TaintedMemory()
+    {
+    	delete[] data;
     }
 
     void load_binary_file(const std::string &filename, unsigned addr) {
         boost::iostreams::mapped_file_source f(filename);
         assert (f.is_open());
-        write_data(addr, (const uint8_t *)f.data(), f.size());
+        for(unsigned i = 0; i < f.size(); i++)
+        {
+        	 data[addr + i] = f.data()[i];
+        }
     }
 
-    void write_data(unsigned addr, const uint8_t *src, unsigned num_bytes) {
+    void write_data(unsigned addr, const Taint<uint8_t> *src, unsigned num_bytes) {
         assert (addr + num_bytes <= size);
 
-        memcpy(data + addr, src, num_bytes);
+        memcpy(data + addr, src, num_bytes * sizeof(Taint<uint8_t>));
     }
 
-    void read_data(unsigned addr, uint8_t *dst, unsigned num_bytes) {
+    void read_data(unsigned addr, Taint<uint8_t> *dst, unsigned num_bytes) {
         assert (addr + num_bytes <= size);
 
-        memcpy(dst, data + addr, num_bytes);
+        memcpy(dst, data + addr, num_bytes * sizeof(Taint<uint8_t>));
     }
 
     void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
         tlm::tlm_command cmd = trans.get_command();
         unsigned addr = trans.get_address();
-        auto *ptr = trans.get_data_ptr();
-        auto len = trans.get_data_length();
+        Taint<uint8_t> *ptr = reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr());
+        auto len = trans.get_data_length() / sizeof(Taint<uint8_t>);
 
         assert ((addr >= 0) && (addr < size));
 
@@ -58,14 +65,6 @@ struct SimpleMemory : public sc_core::sc_module {
         }
 
         delay += sc_core::sc_time(10, sc_core::SC_NS);
-    }
-
-    bool get_direct_mem_ptr(tlm::tlm_generic_payload &trans, tlm::tlm_dmi &dmi) {
-        dmi.allow_read_write();
-        dmi.set_start_address(0);
-        dmi.set_end_address(size);
-        dmi.set_dmi_ptr(data);
-        return true;
     }
 };
 

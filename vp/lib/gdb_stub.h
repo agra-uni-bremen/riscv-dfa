@@ -2,10 +2,11 @@
 #define RISCV_ISA_GDB_STUB_H
 
 #include "iss.h"
+#include "taint.hpp"
 
 
 struct debug_memory_mapping {
-    uint8_t *mem;
+    Taint<uint8_t> *mem;
     uint32_t mem_offset;
     uint32_t mem_size;
 

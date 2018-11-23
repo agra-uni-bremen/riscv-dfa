@@ -41,7 +41,8 @@ std::string debug_memory_mapping::read_memory(unsigned start, int nbytes) {
     }
     else
     {
-        for (uint32_t i=0; i<read_size; ++i) {
+        for (uint32_t i=0; i<read_size; ++i)
+        {
             stream << "00";
         }
     }

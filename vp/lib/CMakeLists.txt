@@ -1,8 +1,8 @@
 file(GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
-add_executable(taint-test
-        tainttest.cpp
-        )
+#add_executable(taint-test
+#        tainttest.cpp
+#        )
 
 add_executable(riscv-vp
         main.cpp

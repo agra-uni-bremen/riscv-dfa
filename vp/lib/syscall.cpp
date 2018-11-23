@@ -11,7 +11,7 @@
 #include <stdexcept>
 
 #include <boost/lexical_cast.hpp>
-
+#include "taint.hpp"
 
 
 //see: riscv-gnu-toolchain/riscv-newlib/libgloss/riscv/
@@ -59,21 +59,27 @@ void _copy_timespec(rv32g_timespec *dst, timespec *src) {
 int sys_fstat(SyscallHandler *sys, int fd, rv32g_stat *s_addr) {
     struct stat x;
     int ans = fstat(fd, &x);
-    if (ans == 0) {
-        rv32g_stat *p = (rv32g_stat *)sys->guest_to_host_pointer(s_addr);
-        p->st_dev   = x.st_dev;
-        p->st_ino   = x.st_ino;
-        p->st_mode  = x.st_mode;
-        p->st_nlink = x.st_nlink;
-        p->st_uid   = x.st_uid;
-        p->st_gid   = x.st_gid;
-        p->st_rdev  = x.st_rdev;
-        p->st_size  = x.st_size;
-        p->st_blksize = x.st_blksize;
-        p->st_blocks  = x.st_blocks;
-        _copy_timespec(&p->st_atim, &x.st_atim);
-        _copy_timespec(&p->st_mtim, &x.st_mtim);
-        _copy_timespec(&p->st_ctim, &x.st_ctim);
+    if (ans == 0)
+    {
+        rv32g_stat p;
+        p.st_dev   = x.st_dev;
+        p.st_ino   = x.st_ino;
+        p.st_mode  = x.st_mode;
+        p.st_nlink = x.st_nlink;
+        p.st_uid   = x.st_uid;
+        p.st_gid   = x.st_gid;
+        p.st_rdev  = x.st_rdev;
+        p.st_size  = x.st_size;
+        p.st_blksize = x.st_blksize;
+        p.st_blocks  = x.st_blocks;
+        _copy_timespec(&p.st_atim, &x.st_atim);
+        _copy_timespec(&p.st_mtim, &x.st_mtim);
+        _copy_timespec(&p.st_ctim, &x.st_ctim);
+        Taint<uint8_t>* t = sys->guest_to_host_pointer(s_addr);
+        for(unsigned i = 0; i < sizeof(rv32g_stat); i++)
+        {
+        	t[i] = reinterpret_cast<uint8_t*>(&p)[i];
+        }
     }
     return ans;
 }
@@ -115,22 +121,32 @@ int sys_brk(SyscallHandler *sys, void *addr) {
 int sys_write(SyscallHandler *sys, int fd, const void *buf, size_t count) {
     const char *p = (const char *)sys->guest_to_host_pointer((void *)buf);
 
-    auto ans = write(fd, p, count);
+	uint8_t tmp[count];
 
-    assert (ans >= 0);
+	for(int i = 0; i < count; i++)
+	{
+		tmp[i] = p[i];		//This may throw if Byte is tainted.
+	}
 
+    auto ans = write(fd, tmp, count);
     return ans;
 }
 
 
 int sys_read(SyscallHandler *sys, int fd, void *buf, size_t count) {
-    char *p = (char *)sys->guest_to_host_pointer(buf);
+	Taint<uint8_t> *p = sys->guest_to_host_pointer(buf);
 
-    auto ans = read(fd, p, count);
+	uint8_t tmp[count];
+	int bytes = read(fd, tmp, count);
 
-    assert (ans >= 0);
-
-    return ans;
+	if(bytes > 0)
+	{
+		for(int i = 0; i < bytes; i++)
+		{
+			p[i] = tmp[i];
+		}
+	}
+    return bytes;
 }
 
 
