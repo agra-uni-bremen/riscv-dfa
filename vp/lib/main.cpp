@@ -122,7 +122,7 @@ int sc_main(int argc, char **argv) {
     TaintedMemory mem("TAINTEDMemory", opt.mem_size);
     SimpleTerminal term("SimpleTerminal");
     ELFLoader loader(opt.input_program.c_str());
-    SimpleBus<2,11> bus("SimpleBus");
+    SimpleBus<2,7> bus("SimpleBus");
     CombinedMemoryInterface iss_mem_if("MemoryInterface", core.quantum_keeper);
     SyscallHandler sys;
     PLIC plic("PLIC");

@@ -10,8 +10,6 @@ add_executable(riscv-vp
         syscall.cpp
         instr.cpp
         gdb_stub.cpp
-        ethernet.cpp
-        display.cpp
         ${HEADERS})
 
 target_link_libraries(riscv-vp ${Boost_LIBRARIES} ${SystemC_LIBRARIES} pthread)

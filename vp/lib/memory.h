@@ -52,7 +52,7 @@ struct TaintedMemory : public sc_core::sc_module {
         tlm::tlm_command cmd = trans.get_command();
         unsigned addr = trans.get_address();
         Taint<uint8_t> *ptr = reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr());
-        auto len = trans.get_data_length() / sizeof(Taint<uint8_t>);
+        auto len = trans.get_data_length();
 
         assert ((addr >= 0) && (addr < size));
 

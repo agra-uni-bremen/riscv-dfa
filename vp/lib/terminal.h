@@ -16,9 +16,12 @@ struct SimpleTerminal : public sc_core::sc_module {
 
     void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
         sc_assert (trans.get_command() == tlm::TLM_WRITE_COMMAND);
-        sc_assert (trans.get_data_length() == 1);
+        sc_assert (trans.get_data_length() == sizeof(Taint<uint8_t>));
 
-        std::cout << (char)*trans.get_data_ptr();
+        //this may throw if tainted
+        char c = *reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr());
+
+        std::cout << c;
     }
 };
 

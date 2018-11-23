@@ -14,7 +14,7 @@ struct SimpleDMA : public sc_core::sc_module {
     interrupt_gateway *plic = 0;
     uint32_t irq_number = 0;
 
-    std::array<uint8_t, 64> buffer;
+    std::array<Taint<uint8_t>, 64> buffer;
 
     uint32_t src  = 0;
     uint32_t dst  = 0;
@@ -140,13 +140,13 @@ struct SimpleDMA : public sc_core::sc_module {
         }
     }
 
-    void do_transaction(tlm::tlm_command cmd, uint64_t addr, uint8_t *data, unsigned num_bytes) {
+    void do_transaction(tlm::tlm_command cmd, uint64_t addr, Taint<uint8_t> *data, unsigned num_bytes) {
         sc_core::sc_time delay = sc_core::SC_ZERO_TIME;
 
         tlm::tlm_generic_payload trans;
         trans.set_command(cmd);
         trans.set_address(addr);
-        trans.set_data_ptr(data);
+        trans.set_data_ptr(reinterpret_cast<uint8_t*>(data));
         trans.set_data_length(num_bytes);
 
         isock->b_transport(trans, delay);

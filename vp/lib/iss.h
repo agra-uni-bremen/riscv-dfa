@@ -277,11 +277,11 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
         : quantum_keeper(keeper) {
     }
 
-    inline void _do_transaction(tlm::tlm_command cmd, uint64_t addr, uint8_t *data, unsigned num_bytes) {
+    inline void _do_transaction(tlm::tlm_command cmd, uint64_t addr, Taint<uint8_t> *data, unsigned num_bytes) {
         tlm::tlm_generic_payload trans;
         trans.set_command(cmd);
         trans.set_address(addr);
-        trans.set_data_ptr(data);
+        trans.set_data_ptr(reinterpret_cast<uint8_t*>(data));
         trans.set_data_length(num_bytes);
 
         sc_core::sc_time local_delay = quantum_keeper.get_local_time();
@@ -293,24 +293,28 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
     }
 
     template <typename T>
-    inline T _load_data(addr_t addr) {
-        T ans;
-        _do_transaction(tlm::TLM_READ_COMMAND, addr, (uint8_t*)&ans, sizeof(T));
+    inline Taint<T> _load_data(addr_t addr) {
+    	Taint<uint8_t> arr[sizeof(T)];
+        _do_transaction(tlm::TLM_READ_COMMAND, addr, arr, sizeof(T));
+        Taint<T> ans;
+        ans.confine(arr);
         return ans;
     }
 
     template <typename T>
-    inline void _store_data(addr_t addr, T value) {
-        _do_transaction(tlm::TLM_WRITE_COMMAND, addr, (uint8_t*)&value, sizeof(T));
+    inline void _store_data(addr_t addr, Taint<T> value) {
+    	Taint<uint8_t> arr[sizeof(T)];
+    	value.expand(arr);
+        _do_transaction(tlm::TLM_WRITE_COMMAND, addr, arr, sizeof(T));
     }
 
     int32_t load_instr(addr_t addr) { return _load_data<int32_t>(addr); }
 
-    Taint<int32_t> load_word(addr_t addr) { return _load_data<Taint<int32_t>>(addr); }
-    Taint<int32_t> load_half(addr_t addr) { return _load_data<Taint<int16_t>>(addr); }
-    Taint<int32_t> load_byte(addr_t addr) { return _load_data<Taint<int8_t>>(addr); }
-    Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<Taint<uint16_t>>(addr); }
-    Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<Taint<uint8_t>>(addr); }
+    Taint<int32_t> load_word(addr_t addr) { return _load_data<int32_t>(addr); }
+    Taint<int32_t> load_half(addr_t addr) { return _load_data<int16_t>(addr); }
+    Taint<int32_t> load_byte(addr_t addr) { return _load_data<int8_t>(addr); }
+    Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<uint16_t>(addr); }
+    Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<uint8_t>(addr); }
 
     void store_word(addr_t addr, Taint<uint32_t> value) { _store_data(addr, value); }
     void store_half(addr_t addr, Taint<uint16_t> value) { _store_data(addr, value); }
