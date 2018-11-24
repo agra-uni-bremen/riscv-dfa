@@ -61,6 +61,20 @@ public:
 		memset(id, 0, sizeof(T));
 	}
 
+	Taint(Taint<uint8_t> ar[sizeof(T)])
+	{
+		for(uint8_t i = 0; i < sizeof(T); i ++)
+		{
+			id[i] = ar[i].getTaintId();
+			if(id[0] != id[i])
+			{
+				throw(TaintingException("Unaligned confine on Taint Objects"));
+			}
+			ar[i].setTaintId(0);	//expensive
+			reinterpret_cast<uint8_t*>(&value)[i] = ar[i];
+		}
+	}
+
 
 	friend void swap(Taint<T>& lhs, Taint<T>& rhs)
 	{
@@ -111,20 +125,6 @@ public:
 		{
 			ar[i] = reinterpret_cast<uint8_t*>(&value)[i];
 			ar[i].setTaintId(getTaintId());
-		}
-	}
-
-	void confine(Taint<uint8_t> ar[sizeof(T)])
-	{
-		for(uint8_t i = 0; i < sizeof(T); i ++)
-		{
-			id[i] = ar[i].getTaintId();
-			if(id[0] != id[i])
-			{
-				throw(TaintingException("Unaligned confine on Taint Objects"));
-			}
-			ar[i].setTaintId(0);	//expensive
-			reinterpret_cast<uint8_t*>(&value)[i] = ar[i];
 		}
 	}
 
