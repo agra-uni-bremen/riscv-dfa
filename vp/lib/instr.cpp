@@ -290,7 +290,7 @@ Compressed::Opcode decode_compressed(Instruction &instr) {
 }
 
 
-Opcode::mapping expand_compressed(Instruction &instr, Compressed::Opcode op) {
+Opcode::Mapping expand_compressed(Instruction &instr, Compressed::Opcode op) {
     using namespace Opcode;
     using namespace Compressed;
 
@@ -438,13 +438,13 @@ Opcode::mapping expand_compressed(Instruction &instr, Compressed::Opcode op) {
 }
 
 
-Opcode::mapping Instruction::decode_and_expand_compressed() {
+Opcode::Mapping Instruction::decode_and_expand_compressed() {
     auto c_op = decode_compressed(*this);
     return expand_compressed(*this, c_op);
 }
 
 
-Opcode::mapping Instruction::decode_normal() {
+Opcode::Mapping Instruction::decode_normal() {
     //NOTE: perhaps check constant fields inside the instructions to ensure that illegal instruction formats are detected (e.g. shamt extends into func7 field)
     using namespace Opcode;
 
@@ -453,8 +453,20 @@ Opcode::mapping Instruction::decode_normal() {
     switch (instr.opcode()) {
         case OP_LUI:
             return LUI;
+        case OP_CUST1:
+            switch (instr.funct3())
+            {
+                case F3_C1F0:
+                    return SETTAINT;
+                case F3_C1F1:
+                	return GETTAINT;
+            }
+            break;
 
-        case OP_AUIPC:
+		case OP_CUST0:
+            break;
+
+		case OP_AUIPC:
             return AUIPC;
 
         case OP_JAL:

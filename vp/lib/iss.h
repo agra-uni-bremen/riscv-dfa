@@ -394,10 +394,10 @@ struct ISS : public sc_core::sc_module,
         clint = nullptr;
     }
 
-    Opcode::mapping exec_step() {
+    Opcode::Mapping exec_step() {
         auto mem_word = instr_mem->load_instr(pc);
         Instruction instr(mem_word);
-        Opcode::mapping op;
+        Opcode::Mapping op;
         if (instr.is_compressed()) {
             op = instr.decode_and_expand_compressed();
             pc += 2;
@@ -409,6 +409,14 @@ struct ISS : public sc_core::sc_module,
         switch (op) {
             case Opcode::UNDEF:
                 throw std::runtime_error("unknown instruction");
+
+            case Opcode::SETTAINT:
+            	regs[instr.rd()].setTaintId(instr.I_imm());
+            	break;
+
+            case Opcode::GETTAINT:
+            	regs[instr.rd()] = regs[instr.rs1()].getTaintId();
+            	break;
 
             case Opcode::ADDI:
                 regs[instr.rd()] = regs[instr.rs1()] + instr.I_imm();
@@ -958,7 +966,7 @@ struct ISS : public sc_core::sc_module,
     }
 
 
-    void performance_and_sync_update(Opcode::mapping executed_op) {
+    void performance_and_sync_update(Opcode::Mapping executed_op) {
         ++csrs.instret_root->reg;
 
         auto new_cycles = instr_cycles[executed_op];
@@ -974,7 +982,7 @@ struct ISS : public sc_core::sc_module,
 
         //std::cout << "pc: " << std::hex << pc << " sp: " << regs.read(regs.sp) << std::endl;
         last_pc = pc;
-        Opcode::mapping op = exec_step();
+        Opcode::Mapping op = exec_step();
 
         if (has_pending_enabled_interrupts())
             switch_to_trap_handler();

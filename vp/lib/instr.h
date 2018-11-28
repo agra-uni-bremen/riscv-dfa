@@ -5,8 +5,20 @@
 
 
 namespace Opcode {
-    enum parts {
+    enum Parts {
         OP_LUI    = 0b0110111,
+        OP_CUST1  = 0b0101011,
+        F3_C1F0   = 0b000,	//settaint
+        F3_C1F1   = 0b001,	//gettaint
+        F3_C1F2   = 0b010,
+        F3_C1F3   = 0b011,
+        F3_C1F4   = 0b100,
+        OP_CUST0  = 0b0001011,
+        F3_C2F0   = 0b000,
+        F3_C2F1   = 0b001,
+        F3_C2F2   = 0b010,
+        F3_C2F3   = 0b011,
+        F3_C2F4   = 0b100,
         OP_AUIPC  = 0b0010111,
         OP_JAL    = 0b1101111,
         OP_JALR   = 0b1100111,
@@ -74,13 +86,13 @@ namespace Opcode {
         F12_ECALL  = 0b000000000000,
         F12_EBREAK = 0b000000000001,
         //begin:privileged-instructions
-                F12_URET   = 0b000000000010,
+		F12_URET   = 0b000000000010,
         F12_SRET   = 0b000100000010,
         F12_MRET   = 0b001100000010,
         F12_WFI    = 0b000100000101,
         F7_SFENCE_VMA = 0b0001001,
         //end:privileged-instructions
-                F3_CSRRW   = 0b001,
+		F3_CSRRW   = 0b001,
         F3_CSRRS   = 0b010,
         F3_CSRRC   = 0b011,
         F3_CSRRWI  = 0b101,
@@ -101,11 +113,13 @@ namespace Opcode {
         F5_AMOMAXU_W  = 0b11100,
     };
 
-    enum mapping {
+    enum Mapping {
         UNDEF = 0,
 
         // RV32I Base Instruction Set
         LUI = 1,
+        GETTAINT,
+        SETTAINT,
         AUIPC,
         JAL,
         JALR,
@@ -252,9 +266,9 @@ struct Instruction {
         return BIT_SLICE(instr,6,5);
     }
 
-    Opcode::mapping decode_normal();
+    Opcode::Mapping decode_normal();
 
-    Opcode::mapping decode_and_expand_compressed();
+    Opcode::Mapping decode_and_expand_compressed();
 
     inline uint32_t csr() {
         // cast to unsigned to avoid sign extension when shifting
