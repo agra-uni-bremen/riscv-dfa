@@ -75,11 +75,35 @@ public:
 		}
 	}
 
-
 	friend void swap(Taint<T>& lhs, Taint<T>& rhs)
 	{
 		std::swap(lhs.value, rhs.value);
 		std::swap(lhs.id, rhs.id);
+	}
+
+	uint8_t mergeTaintingValues(const uint8_t a, const uint8_t b)
+	{
+		if(a != b)
+		{
+			if(a > 0 && b == 0)
+			{
+				return a;
+			}
+			else if(b > 0 && a == 0)
+			{
+				return b;
+			}
+			else
+			{
+				std::cerr << "Combination of two tainting values, I dont know how to merge!" << std::endl;
+				throw(TaintingException("unknown combination of taint values"));
+				return a;
+			}
+		}
+		else
+		{
+			return a;
+		}
 	}
 
 	Taint<T>& operator =(const Taint<T>& other)
@@ -93,6 +117,26 @@ public:
 		swap(*this, temp);
 
 		return *this;
+	}
+
+	Taint<T> operator+(const T& other)
+	{
+		Taint<T> ret(*this);
+		ret.value += other;
+		return ret;
+	}
+
+	Taint<T> operator+(const Taint<T>& other)
+	{
+		Taint<T> ret(*this);
+		ret.value += other.value;
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
+	}
+
+	bool operator<(const T& other)
+	{
+		return value < other;
 	}
 
 	operator T() const
