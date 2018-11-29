@@ -95,6 +95,7 @@ int sys_gettimeofday(SyscallHandler *sys, struct timeval *tp, void *tzp) {
     struct timeval x;
     int ans = gettimeofday(&x, 0);
 
+	//Fixme: guest to host returns Tainted pointer!
     guest_long *p = (guest_long *)sys->guest_to_host_pointer(tp);
     p[0] = x.tv_sec;
     p[1] = x.tv_usec;
@@ -158,11 +159,22 @@ int sys_lseek(int fd, off_t offset, int whence) {
 
 
 int sys_open(SyscallHandler *sys, const char *pathname, int flags, mode_t mode) {
-    const char *host_pathname = (char *)sys->guest_to_host_pointer((void *)pathname);
+    const Taint<uint8_t> *host_pathname = sys->guest_to_host_pointer(pathname);
 
-    auto ans = open(host_pathname, flags, mode);
+    char name[50];
+    uint8_t ptr = 0;
+    while(ptr < 50)
+    {
+    	name[ptr] = host_pathname[ptr];
+    	if(name[ptr++])
+    	{
+    		break;
+    	}
+    }
 
-    std::cout << "[sys_open] " << host_pathname << ", " << flags << ", " << mode << std::endl;
+    auto ans = open(name, flags, mode);
+
+    std::cout << "[sys_open] " << name << ", " << flags << ", " << mode << std::endl;
 
     return ans;
 }
@@ -185,6 +197,7 @@ int sys_time(SyscallHandler *sys, rv32g_time_t *tloc) {
     rv32g_time_t guest_ans = boost::lexical_cast<rv32g_time_t>(host_ans);
 
     if (tloc != 0) {
+    	//TODO FIXME: translate between Taint and char
         rv32g_time_t *p = (rv32g_time_t *)sys->guest_to_host_pointer(tloc);
         *p = guest_ans;
     }
