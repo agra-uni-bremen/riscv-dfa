@@ -119,7 +119,7 @@ int sys_brk(SyscallHandler *sys, void *addr) {
 
 
 int sys_write(SyscallHandler *sys, int fd, const void *buf, size_t count) {
-    const char *p = (const char *)sys->guest_to_host_pointer((void *)buf);
+	Taint<uint8_t> *p = sys->guest_to_host_pointer(buf);
 
 	uint8_t tmp[count];
 

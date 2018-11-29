@@ -406,7 +406,7 @@ struct ISS : public sc_core::sc_module,
 
     Opcode::Mapping exec_step()
     {
-        auto mem_word = instr_mem->load_instr(pc);
+    	uint32_t mem_word = instr_mem->load_instr(pc);
         Instruction instr(mem_word);
         Opcode::Mapping op;
         if (instr.is_compressed())

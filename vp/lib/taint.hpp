@@ -62,7 +62,7 @@ public:
 	Taint(Taint<uint8_t> ar[sizeof(T)])
 	{
 		uint8_t taint = ar[0].getTaintId();
-		for(uint8_t i = 1; i < sizeof(T); i ++)
+		for(uint8_t i = 0; i < sizeof(T); i ++)
 		{
 			if(taint != ar[i].getTaintId())
 			{
@@ -78,6 +78,8 @@ public:
 			}
 			//magic that relies that value is first byte in ar[i]
 			reinterpret_cast<uint8_t*>(&value)[i] = *reinterpret_cast<uint8_t*>(&ar[i]);
+			//ar[i].setTaintID(0);
+			//reinterpret_cast<uint8_t*>(&value)[i] = ar[i];
 		}
 		setTaintId(taint);
 	}

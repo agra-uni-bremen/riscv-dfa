@@ -81,13 +81,13 @@ struct SyscallHandler {
         max_heap = hp;
     }
 
-    Taint<uint8_t> *guest_address_to_host_pointer(uintptr_t addr) {
+    Taint<uint8_t> *guest_address_to_host_pointer(const uintptr_t addr) {
         assert (mem != nullptr);
 
         return mem + (addr - mem_offset);
     }
 
-    Taint<uint8_t> *guest_to_host_pointer(void *p) {
+    Taint<uint8_t> *guest_to_host_pointer(const void *p) {
         return guest_address_to_host_pointer((uintptr_t)p);
     }
 
