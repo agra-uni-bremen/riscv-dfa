@@ -33,8 +33,6 @@ template<typename T> class Taint
 	T value;
 	uint8_t id[sizeof(T)];
 
-	static_assert(sizeof(T) <= 4);
-
 public:
 	Taint()
 	{
@@ -63,16 +61,25 @@ public:
 
 	Taint(Taint<uint8_t> ar[sizeof(T)])
 	{
-		for(uint8_t i = 0; i < sizeof(T); i ++)
+		uint8_t taint = ar[0].getTaintId();
+		for(uint8_t i = 1; i < sizeof(T); i ++)
 		{
-			id[i] = ar[i].getTaintId();
-			if(id[0] != id[i])
+			if(taint != ar[i].getTaintId())
 			{
-				throw(TaintingException("Unaligned confine on Taint Objects"));
+				if(taint == 0)
+				{
+					std::cerr << "unaligned confinde on Taint Objects?" << std::endl;
+					taint = ar[i].getTaintId();
+				}
+				else
+				{
+					throw(TaintingException("Unaligned confine on different tainted Objects"));
+				}
 			}
-			ar[i].setTaintId(0);	//expensive
-			reinterpret_cast<uint8_t*>(&value)[i] = ar[i];
+			//magic that relies that value is first byte in ar[i]
+			reinterpret_cast<uint8_t*>(&value)[i] = *reinterpret_cast<uint8_t*>(&ar[i]);
 		}
+		setTaintId(taint);
 	}
 
 	friend void swap(Taint<T>& lhs, Taint<T>& rhs)
@@ -119,6 +126,13 @@ public:
 		return *this;
 	}
 
+	Taint<T> operator+(const Taint<T>& other)
+	{
+		Taint<T> ret(value += other.value);
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
+	}
+
 	Taint<T> operator+(const T& other)
 	{
 		Taint<T> ret(*this);
@@ -126,17 +140,90 @@ public:
 		return ret;
 	}
 
-	Taint<T> operator+(const Taint<T>& other)
+	//Would be better if returned tainted bool
+	bool operator<(const Taint<T>& other)
 	{
-		Taint<T> ret(*this);
-		ret.value += other.value;
-		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
-		return ret;
+		return value < other.value;
 	}
 
 	bool operator<(const T& other)
 	{
 		return value < other;
+	}
+
+	Taint<T> operator^(const Taint<T>& other)
+	{
+		Taint<T> ret(value ^= other.value);
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
+	}
+
+	template <typename N>
+	Taint<T> operator^(const N& other)
+	{
+		Taint<T> ret(*this);
+		ret.value ^= other;
+		return ret;
+	}
+
+	Taint<T> operator|(const Taint<T>& other)
+	{
+		Taint<T> ret(value |= other);
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
+	}
+
+	template <typename N>
+	Taint<T> operator|(const N& other)
+	{
+		Taint<T> ret(*this);
+		ret.value |= other;
+		return ret;
+	}
+
+	Taint<T> operator&(const Taint<T>& other)
+	{
+		Taint<T> ret(value &= other);
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
+	}
+
+	template <typename N>
+	Taint<T> operator&(const N& other)
+	{
+		Taint<T> ret(*this);
+		ret.value &= other;
+		return ret;
+	}
+
+	Taint<T> operator<<(const Taint<T>& other)
+	{
+		Taint<T> ret(value <<= other.value);
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
+	}
+
+	template <typename N>
+	Taint<T> operator<<(const N& other)
+	{
+		Taint<T> ret(*this);
+		ret.value <<= other;
+		return ret;
+	}
+
+	Taint<T> operator>>(const Taint<T>& other)
+	{
+		Taint<T> ret(value >>= other.value);
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
+	}
+
+	template <typename N>
+	Taint<T> operator>>(const N& other)
+	{
+		Taint<T> ret(*this);
+		ret.value >>= other;
+		return ret;
 	}
 
 	operator T() const
@@ -152,15 +239,23 @@ public:
 		return value;
 	}
 
-	//Explicit Type conversions for Register width
+	//implicit Type conversions for Register width
 	//Note: This only works with big-endian host processors
-	template<typename B>
-	operator Taint<B>() const
+	template<typename N>
+	operator Taint<N>() const
 	{
 		DEBUG(std::cout << "Conversion of " << int(value) << " id (" << int(getTaintId()) << ")" << std::endl;)
-		Taint<B> temp = value;
+		Taint<N> temp(value);
 		temp.setTaintId(getTaintId());
 		return temp;
+	}
+
+	template<typename N>
+	Taint<N> as()
+	{
+		Taint<N> ret(static_cast<N>(value));
+		ret.setTaintId(getTaintId());
+		return ret;
 	}
 
 	void expand(Taint<uint8_t> ar[sizeof(T)])

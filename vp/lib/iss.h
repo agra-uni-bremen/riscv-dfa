@@ -102,31 +102,37 @@ struct RegFile {
         t6 = x31,
     };
 
-    RegFile() {
+    RegFile()
+    {
         memset(regs, 0, sizeof(regs));
     }
 
-    RegFile(const RegFile &other) {
+    RegFile(const RegFile &other)
+    {
         memcpy(regs, other.regs, sizeof(regs));
     }
 
-    void write(uint32_t index, Taint<int32_t> value) {
+    void write(uint32_t index, Taint<int32_t> value)
+    {
         assert (index <= x31);
         assert (index != x0);
         regs[index] = value;
     }
 
-    Taint<int32_t> read(uint32_t index) {
+    Taint<int32_t> read(uint32_t index)
+	{
         assert (index <= x31);
         return regs[index];
     }
 
-    Taint<int32_t> shamt(uint32_t index) {
+    Taint<int32_t> shamt(uint32_t index)
+	{
         assert (index <= x31);
         return BIT_RANGE(regs[index], 4, 0);
     }
 
-    Taint<int32_t> &operator [](const uint32_t idx) {
+    Taint<int32_t> &operator [](const uint32_t idx)
+    {
         return regs[idx];
     }
 
@@ -176,16 +182,17 @@ struct InstrMemoryProxy : public instr_memory_interface {
     sc_core::sc_time access_delay = clock_cycle * 2;
 
     InstrMemoryProxy(direct_memory_interface &dmi, tlm_utils::tlm_quantumkeeper &keeper)
-            : dmi(dmi), quantum_keeper(keeper) {
-    }
+            : dmi(dmi), quantum_keeper(keeper)
+    {}
 
-    virtual int32_t load_instr(uint32_t pc) override {
+    virtual int32_t load_instr(uint32_t pc) override
+    {
         assert (pc >= dmi.offset);
         assert ((pc - dmi.offset) < dmi.size);
 
         quantum_keeper.inc(access_delay);
 
-        return *((int32_t*)(dmi.mem + (pc - dmi.offset)));
+        return (dmi.mem + (pc - dmi.offset))->as<int32_t>();
     }
 };
 
@@ -293,14 +300,17 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
     }
 
     template <typename T>
-    inline Taint<T> _load_data(addr_t addr) {
+    inline Taint<T> _load_data(addr_t addr)
+    {
     	Taint<uint8_t> arr[sizeof(T)];
+    	memset(arr, 0, sizeof(Taint<uint8_t>) * sizeof(T));
         _do_transaction(tlm::TLM_READ_COMMAND, addr, arr, sizeof(T));
         return Taint<T>(arr);
     }
 
     template <typename T>
-    inline void _store_data(addr_t addr, Taint<T> value) {
+    inline void _store_data(addr_t addr, Taint<T> value)
+    {
     	Taint<uint8_t> arr[sizeof(T)];
     	value.expand(arr);
         _do_transaction(tlm::TLM_WRITE_COMMAND, addr, arr, sizeof(T));
@@ -308,15 +318,15 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
 
     int32_t load_instr(addr_t addr) { return _load_data<int32_t>(addr); }
 
-    Taint<int32_t> load_word(addr_t addr) { return _load_data<int32_t>(addr); }
-    Taint<int32_t> load_half(addr_t addr) { return _load_data<int16_t>(addr); }
-    Taint<int32_t> load_byte(addr_t addr) { return _load_data<int8_t>(addr); }
+    Taint<int32_t > load_word (addr_t addr) { return _load_data<int32_t> (addr); }
+    Taint<int32_t > load_half (addr_t addr) { return _load_data<int16_t> (addr); }
+    Taint<int32_t > load_byte (addr_t addr) { return _load_data<int8_t>  (addr); }
     Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<uint16_t>(addr); }
-    Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<uint8_t>(addr); }
+    Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<uint8_t> (addr); }
 
     void store_word(addr_t addr, Taint<uint32_t> value) { _store_data(addr, value); }
     void store_half(addr_t addr, Taint<uint16_t> value) { _store_data(addr, value); }
-    void store_byte(addr_t addr, Taint<uint8_t> value) { _store_data(addr, value); }
+    void store_byte(addr_t addr, Taint<uint8_t > value) { _store_data(addr, value); }
 };
 
 
@@ -394,14 +404,18 @@ struct ISS : public sc_core::sc_module,
         clint = nullptr;
     }
 
-    Opcode::Mapping exec_step() {
+    Opcode::Mapping exec_step()
+    {
         auto mem_word = instr_mem->load_instr(pc);
         Instruction instr(mem_word);
         Opcode::Mapping op;
-        if (instr.is_compressed()) {
+        if (instr.is_compressed())
+        {
             op = instr.decode_and_expand_compressed();
             pc += 2;
-        } else {
+        }
+        else
+        {
             op = instr.decode_normal();
             pc += 4;
         }
@@ -423,11 +437,11 @@ struct ISS : public sc_core::sc_module,
                 break;
 
             case Opcode::SLTI:
-                regs[instr.rd()] = regs[instr.rs1()] < instr.I_imm() ? 1 : 0;
+                regs[instr.rd()] = regs[instr.rs1()] < instr.I_imm();
                 break;
 
             case Opcode::SLTIU:
-                regs[instr.rd()] = ((uint32_t)regs[instr.rs1()]) < ((uint32_t)instr.I_imm()) ? 1 : 0;
+                regs[instr.rd()] = regs[instr.rs1()].as<uint32_t>() < ((uint32_t)instr.I_imm());
                 break;
 
             case Opcode::XORI:
@@ -459,11 +473,11 @@ struct ISS : public sc_core::sc_module,
                 break;
 
             case Opcode::SLTU:
-                regs[instr.rd()] = ((uint32_t)regs[instr.rs1()]) < ((uint32_t)regs[instr.rs2()]);
+                regs[instr.rd()] = regs[instr.rs1()].as<uint32_t>() < regs[instr.rs2()].as<uint32_t>();
                 break;
 
             case Opcode::SRL:
-                regs[instr.rd()] = ((uint32_t)regs[instr.rs1()]) >> regs.shamt(instr.rs2());
+                regs[instr.rd()] = regs[instr.rs1()].as<uint32_t>() >> regs.shamt(instr.rs2()).as<uint32_t>();
                 break;
 
             case Opcode::SRA:
@@ -487,7 +501,7 @@ struct ISS : public sc_core::sc_module,
                 break;
 
             case Opcode::SRLI:
-                regs[instr.rd()] = ((uint32_t)regs[instr.rs1()]) >> instr.shamt();
+                regs[instr.rd()] = regs[instr.rs1()].as<uint32_t>() >> instr.shamt();
                 break;
 
             case Opcode::SRAI:
@@ -508,61 +522,70 @@ struct ISS : public sc_core::sc_module,
                 pc = last_pc + instr.J_imm();
                 break;
 
-            case Opcode::JALR: {
-                uint32_t link = pc;
+            case Opcode::JALR:
+            {
+                Taint<uint32_t> link = pc;
                 pc = (regs[instr.rs1()] + instr.I_imm()) & ~1;
                 if (instr.rd() != RegFile::zero)
                     regs[instr.rd()] = link;
+				break;
             }
-                break;
 
-            case Opcode::SB: {
+            case Opcode::SB:
+            {
                 uint32_t addr = regs[instr.rs1()] + instr.S_imm();
                 mem->store_byte(addr, regs[instr.rs2()]);
-            }
                 break;
+            }
 
-            case Opcode::SH: {
+            case Opcode::SH:
+            {
                 uint32_t addr = regs[instr.rs1()] + instr.S_imm();
                 mem->store_half(addr, regs[instr.rs2()]);
-            }
                 break;
+            }
 
-            case Opcode::SW: {
+            case Opcode::SW:
+            {
                 uint32_t addr = regs[instr.rs1()] + instr.S_imm();
                 mem->store_word(addr, regs[instr.rs2()]);
-            }
                 break;
+            }
 
-            case Opcode::LB: {
+            case Opcode::LB:
+            {
                 uint32_t addr = regs[instr.rs1()] + instr.I_imm();
                 regs[instr.rd()] = mem->load_byte(addr);
-            }
                 break;
+            }
 
-            case Opcode::LH: {
+            case Opcode::LH:
+            {
                 uint32_t addr = regs[instr.rs1()] + instr.I_imm();
                 regs[instr.rd()] = mem->load_half(addr);
-            }
                 break;
+            }
 
-            case Opcode::LW: {
+            case Opcode::LW:
+            {
                 uint32_t addr = regs[instr.rs1()] + instr.I_imm();
                 regs[instr.rd()] = mem->load_word(addr);
-            }
                 break;
+            }
 
-            case Opcode::LBU: {
+            case Opcode::LBU:
+            {
                 uint32_t addr = regs[instr.rs1()] + instr.I_imm();
                 regs[instr.rd()] = mem->load_ubyte(addr);
-            }
                 break;
+            }
 
-            case Opcode::LHU: {
+            case Opcode::LHU:
+            {
                 uint32_t addr = regs[instr.rs1()] + instr.I_imm();
                 regs[instr.rd()] = mem->load_uhalf(addr);
-            }
                 break;
+            }
 
             case Opcode::BEQ:
                 if (regs[instr.rs1()] == regs[instr.rs2()])
@@ -585,21 +608,23 @@ struct ISS : public sc_core::sc_module,
                 break;
 
             case Opcode::BLTU:
-                if ((uint32_t)regs[instr.rs1()] < (uint32_t)regs[instr.rs2()])
+                if (regs[instr.rs1()].as<uint32_t>() < regs[instr.rs2()].as<uint32_t>())
                     pc = last_pc + instr.B_imm();
                 break;
 
             case Opcode::BGEU:
-                if ((uint32_t)regs[instr.rs1()] >= (uint32_t)regs[instr.rs2()])
+                if (regs[instr.rs1()].as<uint32_t>() >= regs[instr.rs2()].as<uint32_t>())
                     pc = last_pc + instr.B_imm();
                 break;
 
-            case Opcode::FENCE: {
+            case Opcode::FENCE:
+            {
                 // not using out of order execution so can be ignored
                 break;
             }
 
-            case Opcode::ECALL: {
+            case Opcode::ECALL:
+            {
                 // NOTE: cast to unsigned value to avoid sign extension, since execute_syscall expects a native 64 bit value
                 int ans = sys->execute_syscall((uint32_t)regs[RegFile::a7], (uint32_t)regs[RegFile::a0], (uint32_t)regs[RegFile::a1], (uint32_t)regs[RegFile::a2], (uint32_t)regs[RegFile::a3]);
                 regs[RegFile::a0] = ans;
@@ -609,7 +634,8 @@ struct ISS : public sc_core::sc_module,
                 status = CoreExecStatus::HitBreakpoint;
                 break;
 
-            case Opcode::CSRRW: {
+            case Opcode::CSRRW:
+            {
                 auto rd = instr.rd();
                 auto rs1_val = regs[instr.rs1()];
                 auto &csr = csr_update_and_get(instr.csr());
@@ -619,7 +645,8 @@ struct ISS : public sc_core::sc_module,
                 csr.write(rs1_val);
             } break;
 
-            case Opcode::CSRRS: {
+            case Opcode::CSRRS:
+            {
                 auto rd = instr.rd();
                 auto rs1 = instr.rs1();
                 auto rs1_val = regs[instr.rs1()];
@@ -630,7 +657,8 @@ struct ISS : public sc_core::sc_module,
                     csr.set_bits(rs1_val);
             } break;
 
-            case Opcode::CSRRC: {
+            case Opcode::CSRRC:
+            {
                 auto rd = instr.rd();
                 auto rs1 = instr.rs1();
                 auto rs1_val = regs[instr.rs1()];
@@ -641,7 +669,8 @@ struct ISS : public sc_core::sc_module,
                     csr.clear_bits(rs1_val);
             } break;
 
-            case Opcode::CSRRWI: {
+            case Opcode::CSRRWI:
+            {
                 auto rd = instr.rd();
                 auto &csr = csr_update_and_get(instr.csr());
                 if (rd != RegFile::zero) {
@@ -650,7 +679,8 @@ struct ISS : public sc_core::sc_module,
                 csr.write(instr.zimm());
             } break;
 
-            case Opcode::CSRRSI: {
+            case Opcode::CSRRSI:
+            {
                 auto rd = instr.rd();
                 auto zimm = instr.zimm();
                 auto &csr = csr_update_and_get(instr.csr());
@@ -660,7 +690,8 @@ struct ISS : public sc_core::sc_module,
                     csr.set_bits(zimm);
             } break;
 
-            case Opcode::CSRRCI: {
+            case Opcode::CSRRCI:
+            {
                 auto rd = instr.rd();
                 auto zimm = instr.zimm();
                 auto &csr = csr_update_and_get(instr.csr());
@@ -670,28 +701,36 @@ struct ISS : public sc_core::sc_module,
                     csr.clear_bits(zimm);
             } break;
 
-
-            case Opcode::MUL: {
-                int64_t ans = (int64_t)regs[instr.rs1()] * (int64_t)regs[instr.rs2()];
+            case Opcode::MUL:
+            {
+                Taint<int64_t> ans = regs[instr.rs1()].as<int64_t>() * regs[instr.rs2()].as<int64_t>();
                 regs[instr.rd()] = ans & 0xFFFFFFFF;
-            } break;
+                break;
+            }
 
-            case Opcode::MULH: {
-                int64_t ans = (int64_t)regs[instr.rs1()] * (int64_t)regs[instr.rs2()];
+            case Opcode::MULH:
+            {
+            	Taint<int64_t> ans = regs[instr.rs1()].as<int64_t>() * regs[instr.rs2()].as<int64_t>();
                 regs[instr.rd()] = (ans & 0xFFFFFFFF00000000) >> 32;
-            } break;
+                break;
+            }
 
-            case Opcode::MULHU: {
-                int64_t ans = ((uint64_t)(uint32_t)regs[instr.rs1()]) * (uint64_t)((uint32_t)regs[instr.rs2()]);
+            case Opcode::MULHU:
+            {
+                Taint<uint64_t> ans = regs[instr.rs1()].as<uint64_t>() * regs[instr.rs2()].as<uint64_t>();
                 regs[instr.rd()] = (ans & 0xFFFFFFFF00000000) >> 32;
-            } break;
+                break;
+            }
 
-            case Opcode::MULHSU: {
-                int64_t ans = (int64_t)regs[instr.rs1()] * (uint64_t)((uint32_t)regs[instr.rs2()]);
+            case Opcode::MULHSU:
+            {
+            	Taint<uint64_t> ans = regs[instr.rs1()].as<uint64_t>() * regs[instr.rs2()].as<uint64_t>();
                 regs[instr.rd()] = (ans & 0xFFFFFFFF00000000) >> 32;
-            } break;
+                break;
+            }
 
-            case Opcode::DIV: {
+            case Opcode::DIV:
+            {
                 auto a = regs[instr.rs1()];
                 auto b = regs[instr.rs2()];
                 if (b == 0) {
@@ -701,50 +740,68 @@ struct ISS : public sc_core::sc_module,
                 } else {
                     regs[instr.rd()] = a / b;
                 }
-            } break;
+                break;
+            }
 
-            case Opcode::DIVU: {
+            case Opcode::DIVU:
+            {
                 auto a = regs[instr.rs1()];
                 auto b = regs[instr.rs2()];
                 if (b == 0) {
                     regs[instr.rd()] = -1;
                 } else {
-                    regs[instr.rd()] = (uint32_t)a / (uint32_t)b;
+                    regs[instr.rd()] = a.as<uint32_t>() / b.as<uint32_t>();
                 }
-            } break;
+                break;
+            }
 
-            case Opcode::REM: {
+            case Opcode::REM:
+            {
                 auto a = regs[instr.rs1()];
                 auto b = regs[instr.rs2()];
-                if (b == 0) {
+                if (b == 0)
+                {
                     regs[instr.rd()] = a;
-                } else if (a == REG_MIN && b == -1) {
+                }
+                else if (a == REG_MIN && b == -1)
+                {
                     regs[instr.rd()] = 0;
-                } else {
+                }
+                else
+                {
                     regs[instr.rd()] = a % b;
                 }
-            } break;
+                break;
+            }
 
-            case Opcode::REMU: {
+            case Opcode::REMU:
+            {
                 auto a = regs[instr.rs1()];
                 auto b = regs[instr.rs2()];
-                if (b == 0) {
+                if (b == 0)
+                {
                     regs[instr.rd()] = a;
-                } else {
-                    regs[instr.rd()] = (uint32_t)a % (uint32_t)b;
                 }
-            } break;
+                else
+                {
+                    regs[instr.rd()] = a.as<uint32_t>() % b.as<uint32_t>();
+                }
+                break;
+            }
 
 
-            case Opcode::LR_W: {
+            case Opcode::LR_W:
+            {
                 //TODO: in multi-threaded system (or even if other components can access the memory independently, e.g. through DMA) need to mark this addr as reserved
                 uint32_t addr = regs[instr.rs1()];
-                regs[instr.rd()] = mem->load_word(addr);
                 assert (addr != 0);
+                regs[instr.rd()] = mem->load_word(addr);
                 lrw_marked = addr;
-            } break;
+                break;
+            }
 
-            case Opcode::SC_W: {
+            case Opcode::SC_W:
+            {
                 uint32_t addr = regs[instr.rs1()];
                 uint32_t val  = regs[instr.rs2()];
                 //TODO: check if other components (besides this iss) may have accessed the last marked memory region
@@ -755,70 +812,75 @@ struct ISS : public sc_core::sc_module,
                     regs[instr.rd()] = 1;
                 }
                 lrw_marked = 0;
-            } break;
+                break;
+            }
 
             //TODO: implement the aq and rl flags if necessary (check for all AMO instructions)
-            case Opcode::AMOSWAP_W: {
+            case Opcode::AMOSWAP_W:
+            {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
                 mem->store_word(addr, regs[instr.rs2()]);
-            } break;
+                break;
+            }
 
-            case Opcode::AMOADD_W: {
+            case Opcode::AMOADD_W:
+            {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
-                uint32_t val = regs[instr.rd()] + regs[instr.rs2()];
-                mem->store_word(addr, val);
-            } break;
+                mem->store_word(addr, regs[instr.rd()] + regs[instr.rs2()]);
+                break;
+            }
 
             case Opcode::AMOXOR_W: {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
-                uint32_t val = regs[instr.rd()] ^ regs[instr.rs2()];
-                mem->store_word(addr, val);
+                mem->store_word(addr, regs[instr.rd()] ^ regs[instr.rs2()]);
             } break;
 
             case Opcode::AMOAND_W: {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
-                uint32_t val = regs[instr.rd()] & regs[instr.rs2()];
-                mem->store_word(addr, val);
+                mem->store_word(addr, regs[instr.rd()] & regs[instr.rs2()]);
             } break;
 
             case Opcode::AMOOR_W: {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
-                uint32_t val = regs[instr.rd()] | regs[instr.rs2()];
-                mem->store_word(addr, val);
+                mem->store_word(addr, regs[instr.rd()] | regs[instr.rs2()]);
             } break;
 
-            case Opcode::AMOMIN_W: {
+            case Opcode::AMOMIN_W:
+            {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
-                uint32_t val = std::min(regs[instr.rd()], regs[instr.rs2()]);
-                mem->store_word(addr, val);
-            } break;
+                mem->store_word(addr, std::min(regs[instr.rd()], regs[instr.rs2()]));
+                break;
+            }
 
-            case Opcode::AMOMINU_W: {
+            case Opcode::AMOMINU_W:
+            {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
-                uint32_t val = std::min((uint32_t)regs[instr.rd()], (uint32_t)regs[instr.rs2()]);
-                mem->store_word(addr, val);
-            } break;
+                mem->store_word(addr, std::min(regs[instr.rd()].as<uint32_t>(), regs[instr.rs2()].as<uint32_t>()));
+                break;
+            }
 
-            case Opcode::AMOMAX_W: {
+            case Opcode::AMOMAX_W:
+            {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
-                uint32_t val = std::max(regs[instr.rd()], regs[instr.rs2()]);
-                mem->store_word(addr, val);
-            } break;
+                mem->store_word(addr, std::max(regs[instr.rd()], regs[instr.rs2()]));
+                break;
+            }
 
-            case Opcode::AMOMAXU_W: {
+            case Opcode::AMOMAXU_W:
+            {
                 uint32_t addr = regs[instr.rs1()];
                 regs[instr.rd()] = mem->load_word(addr);
-                uint32_t val = std::max((uint32_t)regs[instr.rd()], (uint32_t)regs[instr.rs2()]);
-                mem->store_word(addr, val);
-            } break;
+                mem->store_word(addr, std::max(regs[instr.rd()].as<uint32_t>(), regs[instr.rs2()].as<uint32_t>()));
+                break;
+            }
 
 
             case Opcode::WFI:

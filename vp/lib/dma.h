@@ -46,7 +46,8 @@ struct SimpleDMA : public sc_core::sc_module {
     SC_HAS_PROCESS(SimpleDMA);
 
     SimpleDMA(sc_core::sc_module_name, uint32_t irq_number)
-        : irq_number(irq_number) {
+        : irq_number(irq_number)
+    {
 
         tsock.register_b_transport(this, &SimpleDMA::transport);
 
@@ -60,16 +61,19 @@ struct SimpleDMA : public sc_core::sc_module {
         };
     }
 
-    void _copy_block(uint32_t off, uint32_t n) {
+    void _copy_block(uint32_t off, uint32_t n)
+    {
         do_transaction(tlm::TLM_READ_COMMAND, src+off, &buffer[0], n);
         do_transaction(tlm::TLM_WRITE_COMMAND, dst+off, &buffer[0], n);
     }
 
-    void _perform_memcpy() {
+    void _perform_memcpy()
+    {
         auto n = len;
         uint32_t off = 0;
 
-        while (n > buffer.size()) {
+        while (n > buffer.size())
+        {
             _copy_block(off, buffer.size());
             n -= buffer.size();
             off += buffer.size();
