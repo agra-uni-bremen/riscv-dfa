@@ -78,8 +78,6 @@ public:
 			}
 			//magic that relies that value is first byte in ar[i]
 			reinterpret_cast<uint8_t*>(&value)[i] = *reinterpret_cast<uint8_t*>(&ar[i]);
-			//ar[i].setTaintID(0);
-			//reinterpret_cast<uint8_t*>(&value)[i] = ar[i];
 		}
 		setTaintId(taint);
 	}
@@ -237,6 +235,15 @@ public:
 			{
 				throw TaintingException("Invalid demotion of ID " + std::to_string(id[i]));
 			}
+		}
+		return value;
+	}
+
+	T peek()
+	{
+		if(id[0] != 0)
+		{
+			std::cout << "Warning: Peeking into Object with taint ID " << int(id[0]) << std::endl;
 		}
 		return value;
 	}

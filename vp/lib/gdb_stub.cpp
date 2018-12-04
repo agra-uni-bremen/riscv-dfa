@@ -35,8 +35,8 @@ std::string debug_memory_mapping::read_memory(unsigned start, int nbytes) {
 		uint32_t local_offset = read_offset - mem_offset;
         stream << std::setfill('0') << std::hex;
         for (uint32_t i=0; i<read_size; ++i) {
-            uint8_t byte = mem[local_offset+i];
-            stream << std::setw(2) << (unsigned)byte;
+            Taint<uint8_t> byte = mem[local_offset+i];
+            stream << std::setw(2) << (unsigned)byte.peek();
         }
     }
     else
@@ -279,7 +279,7 @@ void DebugCoreRunner::handle_gdb_loop(int conn) {
             std::stringstream stream;
             stream << std::setfill('0') << std::hex;
             for (auto v : regfile.regs) {
-                stream << std::setw(8) << swap_byte_order(v);
+                stream << std::setw(8) << swap_byte_order(v.peek());
             }
             send_packet(conn, stream.str());
         } else if (boost::starts_with(msg, "p")) {

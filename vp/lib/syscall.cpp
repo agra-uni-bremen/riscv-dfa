@@ -122,6 +122,8 @@ int sys_brk(SyscallHandler *sys, void *addr) {
 int sys_write(SyscallHandler *sys, int fd, const void *buf, size_t count) {
 	Taint<uint8_t> *p = sys->guest_to_host_pointer(buf);
 
+	std::cout << "sys_write(" << fd << ", " << buf << ", " << count << ")" << std::endl;
+
 	uint8_t tmp[count];
 
 	for(int i = 0; i < count; i++)

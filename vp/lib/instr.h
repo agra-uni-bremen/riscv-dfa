@@ -2,7 +2,7 @@
 #define RISCV_ISA_INSTR_H
 
 #include "stdint.h"
-
+#include <iostream>
 
 namespace Opcode {
     enum Parts {
@@ -113,7 +113,7 @@ namespace Opcode {
         F5_AMOMAXU_W  = 0b11100,
     };
 
-    enum Mapping {
+    enum Mapping : uint16_t{
         UNDEF = 0,
 
         // RV32I Base Instruction Set
@@ -198,6 +198,9 @@ namespace Opcode {
 
         NUMBER_OF_INSTRUCTIONS
     };
+
+    extern const char* mappingStr[];
+
 }
 
 

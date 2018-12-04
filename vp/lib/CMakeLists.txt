@@ -9,6 +9,7 @@ add_executable(riscv-vp
         plic.cpp
         syscall.cpp
         instr.cpp
+        iss.cpp
         gdb_stub.cpp
         ${HEADERS})
 
