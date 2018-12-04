@@ -81,10 +81,10 @@ struct SyscallHandler {
         max_heap = hp;
     }
 
-    Taint<uint8_t> *guest_address_to_host_pointer(const uint32_t addr) {
+    Taint<uint8_t> *guest_to_host_pointer(const void* addr) {
         assert (mem != nullptr);
-        std::cout << "guest addr " << addr << " is host " << &mem[addr - mem_offset] << std::endl;
-        return &mem[addr - mem_offset];
+        std::cout << "guest addr " << addr << " is host " << mem + (reinterpret_cast<const uint64_t>(addr) - mem_offset) << std::endl;
+        return mem + (reinterpret_cast<const uint64_t>(addr) - mem_offset);
     }
 
     typedef unsigned long int ulong;

@@ -25,6 +25,8 @@
 #include <tlm_utils/tlm_quantumkeeper.h>
 
 
+extern const char* regnames[];
+
 struct RegFile {
     enum {
         NUM_REGS = 32
@@ -137,12 +139,11 @@ struct RegFile {
 
     void show() {
         for (int i=0; i<NUM_REGS; ++i) {
-            std::cout << "r[" << i << "] = " << uint32_t(regs[i]) << " (" << regs[i].getTaintId() << ")" << std::endl;
+        	printf("%s = 0x%08x (%u)\n", regnames[i], uint32_t(regs[i]), regs[i].getTaintId());
+            //std::cout << regnames[i] << " = " << uint32_t(regs[i]) << " (" << uint8_t(regs[i].getTaintId()) << ")" << std::endl;
         }
     }
 };
-
-
 
 struct instr_memory_interface {
     virtual ~instr_memory_interface() {}
