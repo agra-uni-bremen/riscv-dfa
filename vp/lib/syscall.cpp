@@ -62,6 +62,7 @@ int sys_fstat(SyscallHandler *sys, int fd, rv32g_stat *s_addr) {
     if (ans == 0)
     {
         rv32g_stat p;
+        memset(&p, 0, sizeof(rv32g_stat));
         p.st_dev   = x.st_dev;
         p.st_ino   = x.st_ino;
         p.st_mode  = x.st_mode;
@@ -75,6 +76,7 @@ int sys_fstat(SyscallHandler *sys, int fd, rv32g_stat *s_addr) {
         _copy_timespec(&p.st_atim, &x.st_atim);
         _copy_timespec(&p.st_mtim, &x.st_mtim);
         _copy_timespec(&p.st_ctim, &x.st_ctim);
+
         Taint<uint8_t>* t = sys->guest_to_host_pointer(s_addr);
         for(unsigned i = 0; i < sizeof(rv32g_stat); i++)
         {
@@ -122,7 +124,7 @@ int sys_brk(SyscallHandler *sys, void *addr) {
 int sys_write(SyscallHandler *sys, int fd, const void *buf, size_t count) {
 	Taint<uint8_t> *p = sys->guest_to_host_pointer(buf);
 
-	std::cout << "sys_write(" << fd << ", " << buf << ", " << count << ")" << std::endl;
+	DEBUG(std::cout << "sys_write(" << fd << ", " << buf << ", " << count << ")" << std::endl);
 
 	uint8_t tmp[count];
 

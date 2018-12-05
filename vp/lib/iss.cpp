@@ -18,8 +18,7 @@ const char* regnames[] =
 			"t0   (x5)",
 			"t1   (x6)",
 			"t2   (x7)",
-			"s0   (x8)",
-			"fp   (x8)",
+			"s0/sp(x8)",
 			"s1   (x9)",
 			"a0  (x10)",
 			"a1  (x11)",
@@ -80,12 +79,14 @@ ISS::ISS()
 	last_pc = 0;
 	instr_mem = nullptr;
 	mem = nullptr;
-sys = nullptr;
-clint = nullptr;
+	sys = nullptr;
+	clint = nullptr;
 }
 
 Opcode::Mapping ISS::exec_step()
 {
+	DEBUG(std::cout << "pc: " << std::hex << pc << " sp: " << regs.read(regs.sp) << " ");
+
 	uint32_t mem_word = instr_mem->load_instr(pc);
 	Instruction instr(mem_word);
 	Opcode::Mapping op;
@@ -100,11 +101,7 @@ Opcode::Mapping ISS::exec_step()
 		pc += 4;
 	}
 
-	std::cout << "pc: " << std::hex << pc << " sp: " << regs.read(regs.sp) << " ";
-	if(op < Opcode::Mapping::NUMBER_OF_INSTRUCTIONS)
-	{
-		std::cout << Opcode::mappingStr[op] << std::endl;
-	}
+	DEBUG(std::cout << Opcode::mappingStr[op] << std::endl);
 
 	switch (op) {
 		case Opcode::UNDEF:
@@ -119,10 +116,11 @@ Opcode::Mapping ISS::exec_step()
 			break;
 
 		case Opcode::ADDI:
-			std::cout << "\t" << regnames[instr.rd()] << " = " << regnames[instr.rs1()] << " + " << instr.I_imm() << "\t"
-				<< " = " << regs[instr.rs1()] << " + " << instr.I_imm() << std::endl;
+			DEBUG(std::cout << "\t" << regnames[instr.rd()] << " = " << regnames[instr.rs1()] << " + " << instr.I_imm() << "\t" << regs[instr.rs1()] << " + " << instr.I_imm());
 
 			regs[instr.rd()] = regs[instr.rs1()] + instr.I_imm();
+
+			DEBUG(std::cout << " = "<< regs[instr.rd()] << std::endl);
 			break;
 
 		case Opcode::SLTI:
@@ -146,9 +144,9 @@ Opcode::Mapping ISS::exec_step()
 			break;
 
 		case Opcode::ADD:
-			std::cout << "\t" << regnames[instr.rd()] << " = " << regnames[instr.rs1()] << " + " << regnames[instr.rs2()] << "\t"
-				<< " = " << regs[instr.rs1()] << " + " << regs[instr.rs2()] << std::endl;
+			DEBUG(std::cout << "\t" << regnames[instr.rd()] << " = " << regnames[instr.rs1()] << " + " << regnames[instr.rs2()] << "\t" << regs[instr.rs1()] << " + " << regs[instr.rs2()]);
 			regs[instr.rd()] = regs[instr.rs1()] + regs[instr.rs2()];
+			DEBUG(std::cout << " = " << regs[instr.rd()] << std::endl);
 			break;
 
 		case Opcode::SUB:
@@ -200,8 +198,8 @@ Opcode::Mapping ISS::exec_step()
 			break;
 
 		case Opcode::LUI:
-			std::cout << "\t" << regnames[instr.rd()] << " = " << instr.U_imm() << std::endl;
 			regs[instr.rd()] = instr.U_imm();
+			DEBUG(std::cout << "\t" << regnames[instr.rd()] << "(" << regs[instr.rd()] << ")" << " = " << instr.U_imm() << std::endl);
 			break;
 
 		case Opcode::AUIPC:
@@ -227,6 +225,8 @@ Opcode::Mapping ISS::exec_step()
 		{
 			uint32_t addr = regs[instr.rs1()] + instr.S_imm();
 			mem->store_byte(addr, regs[instr.rs2()]);
+			DEBUG(std::cout << "\t*(" << regnames[instr.rs1()] << " + " << instr.S_imm() << ") -> " << regnames[instr.rs2()]);
+			DEBUG(std::cout << " = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") -> " << regs[instr.rs2()] << std::endl);
 			break;
 		}
 
@@ -234,6 +234,8 @@ Opcode::Mapping ISS::exec_step()
 		{
 			uint32_t addr = regs[instr.rs1()] + instr.S_imm();
 			mem->store_half(addr, regs[instr.rs2()]);
+			DEBUG(std::cout << "\t*(" << regnames[instr.rs1()] << " + " << instr.S_imm() << ") -> " << regnames[instr.rs2()]);
+			DEBUG(std::cout << " = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") -> " << regs[instr.rs2()] << std::endl);
 			break;
 		}
 
@@ -241,6 +243,8 @@ Opcode::Mapping ISS::exec_step()
 		{
 			uint32_t addr = regs[instr.rs1()] + instr.S_imm();
 			mem->store_word(addr, regs[instr.rs2()]);
+			DEBUG(std::cout << "\t*(" << regnames[instr.rs1()] << " + " << instr.S_imm() << ") -> " << regnames[instr.rs2()]);
+			DEBUG(std::cout << " = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") -> " << regs[instr.rs2()] << std::endl);
 			break;
 		}
 
@@ -248,6 +252,8 @@ Opcode::Mapping ISS::exec_step()
 		{
 			uint32_t addr = regs[instr.rs1()] + instr.I_imm();
 			regs[instr.rd()] = mem->load_byte(addr);
+			DEBUG(std::cout << "\t*(" << regnames[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regnames[instr.rs2()]);
+			DEBUG(std::cout << " = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regs[instr.rd()] << std::endl);
 			break;
 		}
 
@@ -255,6 +261,8 @@ Opcode::Mapping ISS::exec_step()
 		{
 			uint32_t addr = regs[instr.rs1()] + instr.I_imm();
 			regs[instr.rd()] = mem->load_half(addr);
+			DEBUG(std::cout << "\t*(" << regnames[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regnames[instr.rs2()]);
+			DEBUG(std::cout << " = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regs[instr.rd()] << std::endl);
 			break;
 		}
 
@@ -262,6 +270,8 @@ Opcode::Mapping ISS::exec_step()
 		{
 			uint32_t addr = regs[instr.rs1()] + instr.I_imm();
 			regs[instr.rd()] = mem->load_word(addr);
+			DEBUG(std::cout << "\t*(" << regnames[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regnames[instr.rs2()]);
+			DEBUG(std::cout << " = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regs[instr.rd()] << std::endl);
 			break;
 		}
 
@@ -269,6 +279,8 @@ Opcode::Mapping ISS::exec_step()
 		{
 			uint32_t addr = regs[instr.rs1()] + instr.I_imm();
 			regs[instr.rd()] = mem->load_ubyte(addr);
+			DEBUG(std::cout << "\t*(" << regnames[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regnames[instr.rs2()]);
+			DEBUG(std::cout << " = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regs[instr.rd()] << std::endl);
 			break;
 		}
 
@@ -276,6 +288,8 @@ Opcode::Mapping ISS::exec_step()
 		{
 			uint32_t addr = regs[instr.rs1()] + instr.I_imm();
 			regs[instr.rd()] = mem->load_uhalf(addr);
+			DEBUG(std::cout << "\t*(" << regnames[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regnames[instr.rs2()]);
+			DEBUG(std::cout << " = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") <- " << regs[instr.rd()] << std::endl);
 			break;
 		}
 
@@ -318,7 +332,6 @@ Opcode::Mapping ISS::exec_step()
 		case Opcode::ECALL:
 		{
 			// NOTE: cast to unsigned value to avoid sign extension, since execute_syscall expects a native 64 bit value
-			regs.show();
 			int ans = sys->execute_syscall(regs[RegFile::a7].as<uint32_t>(), regs[RegFile::a0].as<uint32_t>(), regs[RegFile::a1].as<uint32_t>(), regs[RegFile::a2].as<uint32_t>(), regs[RegFile::a3].as<uint32_t>());
 			regs[RegFile::a0] = ans;
 		} break;
@@ -601,6 +614,8 @@ Opcode::Mapping ISS::exec_step()
 
 	//NOTE: writes to zero register are supposedly allowed but must be ignored (reset it after every instruction, instead of checking *rd != zero* before every register write)
 	regs.regs[regs.zero] = 0;
+
+	DEBUG(regs.show());
 
 	return op;
 }

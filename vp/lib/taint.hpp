@@ -14,8 +14,8 @@
 
 #include "tlm_core/tlm_2/tlm_generic_payload/tlm_gp.h"
 
-//#define DEBUG(...) ...
-#define DEBUG(...)
+//#define DEBUG(x) x;
+#define DEBUG(x) ;
 
 struct TaintingException : public std::exception
 {
@@ -36,7 +36,7 @@ template<typename T> class Taint
 public:
 	Taint()
 	{
-		DEBUG(std::cout << "Construct empty" << std::endl;)
+		DEBUG(std::cout << "Construct empty" << std::endl);
 		//intentionally left value undefined
 		id[0] = 0;
 		if(sizeof(T) > 1)	//Most instances will be uint8_t -> Size 1
@@ -47,14 +47,14 @@ public:
 
 	Taint(const Taint<T>& other)
 	{
-		DEBUG(std::cout << "Construct from Taint " << int(other.value) << " id (" << int(other.getTaintId()) << ")" << std::endl;)
+		DEBUG(std::cout << "Construct from Taint " << int(other.value) << " id (" << int(other.getTaintId()) << ")" << std::endl);
 		value = other.value;
 		memcpy(id, other.id, sizeof(T));
 	}
 
 	Taint(const T other)
 	{
-		DEBUG(std::cout << "Construct from basetype " << int(other) << std::endl;)
+		DEBUG(std::cout << "Construct from basetype " << int(other) << std::endl);
 		value = other;
 		memset(id, 0, sizeof(T));
 	}
@@ -115,7 +115,7 @@ public:
 
 	Taint<T>& operator =(const Taint<T>& other)
 	{
-		DEBUG(std::cout << "Move operator = " << int(other.value) << " id (" << int(other.getTaintId()) << ")" << std::endl;)
+		DEBUG(std::cout << "Move operator = " << int(other.value) << " id (" << int(other.getTaintId()) << ")" << std::endl);
 		if(id[0] != 0 && other.id[0] != id[0])
 		{
 			std::cout << "Overwriting tainted value " << int(id[0]) << " with " << int(other.id[0]) << std::endl;
@@ -128,7 +128,7 @@ public:
 
 	Taint<T> operator+(const Taint<T>& other)
 	{
-		Taint<T> ret(value += other.value);
+		Taint<T> ret(value + other.value);
 		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
 		return ret;
 	}
@@ -153,7 +153,7 @@ public:
 
 	Taint<T> operator^(const Taint<T>& other)
 	{
-		Taint<T> ret(value ^= other.value);
+		Taint<T> ret(value ^ other.value);
 		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
 		return ret;
 	}
@@ -168,7 +168,7 @@ public:
 
 	Taint<T> operator|(const Taint<T>& other)
 	{
-		Taint<T> ret(value |= other);
+		Taint<T> ret(value | other);
 		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
 		return ret;
 	}
@@ -183,7 +183,7 @@ public:
 
 	Taint<T> operator&(const Taint<T>& other)
 	{
-		Taint<T> ret(value &= other);
+		Taint<T> ret(value & other);
 		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
 		return ret;
 	}
@@ -198,7 +198,7 @@ public:
 
 	Taint<T> operator<<(const Taint<T>& other)
 	{
-		Taint<T> ret(value <<= other.value);
+		Taint<T> ret(value << other.value);
 		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
 		return ret;
 	}
@@ -213,7 +213,7 @@ public:
 
 	Taint<T> operator>>(const Taint<T>& other)
 	{
-		Taint<T> ret(value >>= other.value);
+		Taint<T> ret(value >> other.value);
 		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
 		return ret;
 	}
@@ -228,7 +228,7 @@ public:
 
 	operator T() const
 	{
-		DEBUG(std::cout << "Demotion of " << int(value) << " id (" << int(getTaintId()) << ")" << std::endl;)
+		DEBUG(std::cout << "Demotion of " << int(value) << " id (" << int(getTaintId()) << ")" << std::endl);
 		for(uint8_t i = 0; i < sizeof(T); i++)
 		{
 			if(id[i] != 0)
@@ -253,7 +253,7 @@ public:
 	template<typename N>
 	operator Taint<N>() const
 	{
-		DEBUG(std::cout << "Conversion of " << int(value) << " id (" << int(getTaintId()) << ")" << std::endl;)
+		DEBUG(std::cout << "Conversion of " << int(value) << " id (" << int(getTaintId()) << ")" << std::endl);
 		Taint<N> temp(value);
 		temp.setTaintId(getTaintId());
 		return temp;
