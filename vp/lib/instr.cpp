@@ -46,8 +46,9 @@ const char* Opcode::mappingStr[] =
 {
 	"ZERO-INVALID",
 	"LUI",
+	"SETTAINT.I",
+	"SETTAINT.R",
 	"GETTAINT",
-	"SETTAINT",
 	"AUIPC",
 	"JAL",
 	"JALR",
@@ -540,8 +541,10 @@ Opcode::Mapping Instruction::decode_normal() {
             switch (instr.funct3())
             {
                 case F3_C1F0:
-                    return SETTAINT;
+                    return SETTAINT_I;
                 case F3_C1F1:
+                	return SETTAINT_R;
+                case F3_C1F2:
                 	return GETTAINT;
             }
             break;

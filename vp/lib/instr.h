@@ -8,9 +8,9 @@ namespace Opcode {
     enum Parts {
         OP_LUI    = 0b0110111,
         OP_CUST1  = 0b0101011,
-        F3_C1F0   = 0b000,	//settaint
-        F3_C1F1   = 0b001,	//gettaint
-        F3_C1F2   = 0b010,
+        F3_C1F0   = 0b000,	//settaint.i
+        F3_C1F1   = 0b001,	//settaint.r
+        F3_C1F2   = 0b010,	//gettaint
         F3_C1F3   = 0b011,
         F3_C1F4   = 0b100,
         OP_CUST0  = 0b0001011,
@@ -118,8 +118,9 @@ namespace Opcode {
 
         // RV32I Base Instruction Set
         LUI = 1,
+        SETTAINT_I,
+        SETTAINT_R,
         GETTAINT,
-        SETTAINT,
         AUIPC,
         JAL,
         JALR,

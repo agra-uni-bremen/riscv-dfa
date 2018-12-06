@@ -34,6 +34,24 @@ template<typename T> class Taint
 	uint8_t id[sizeof(T)];
 
 public:
+	void setTaintId(uint8_t taintID)
+	{
+		memset(id, taintID, sizeof(T));
+	}
+
+	uint8_t getTaintId() const
+	{
+		uint8_t taintID = id[0];
+		for(uint8_t i = 1; i < sizeof(T); i++)
+		{
+			if(taintID != id[i])
+			{
+				throw(TaintingException("Unaligned read on Taint Object"));
+			}
+		}
+		return taintID;
+	}
+
 	Taint()
 	{
 		DEBUG(std::cout << "Construct empty" << std::endl);
@@ -118,7 +136,7 @@ public:
 		DEBUG(std::cout << "Move operator = " << int(other.value) << " id (" << int(other.getTaintId()) << ")" << std::endl);
 		if(id[0] != 0 && other.id[0] != id[0])
 		{
-			std::cout << "Overwriting tainted value " << int(id[0]) << " with " << int(other.id[0]) << std::endl;
+			DEBUG(std::cout << "Overwriting tainted value " << int(id[0]) << " with " << int(other.id[0]) << std::endl);
 		}
 		Taint<T> temp(other);
 		swap(*this, temp);
@@ -140,15 +158,32 @@ public:
 		return ret;
 	}
 
-	//Would be better if returned tainted bool
-	bool operator<(const Taint<T>& other)
+	Taint<bool> operator<(const Taint<T>& other)
 	{
-		return value < other.value;
+		Taint<bool> ret(value < other.value);
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
 	}
 
-	bool operator<(const T& other)
+	Taint<bool> operator<(const T& other)
 	{
-		return value < other;
+		Taint<bool> ret(value < other);
+		ret.setTaintId(getTaintId());
+		return ret;
+	}
+
+	Taint<bool> operator==(const Taint<T>& other)
+	{
+		Taint<bool> ret(value == other.value);
+		ret.setTaintId(mergeTaintingValues(getTaintId(), other.getTaintId()));
+		return ret;
+	}
+
+	Taint<bool> operator==(const T& other)
+	{
+		Taint<bool> ret(value == other);
+		ret.setTaintId(getTaintId());
+		return ret;
 	}
 
 	Taint<T> operator^(const Taint<T>& other)
@@ -274,24 +309,6 @@ public:
 			ar[i] = reinterpret_cast<uint8_t*>(&value)[i];
 			ar[i].setTaintId(getTaintId());
 		}
-	}
-
-	void setTaintId(uint8_t taintID)
-	{
-		memset(id, taintID, sizeof(T));
-	}
-
-	uint8_t getTaintId() const
-	{
-		uint8_t taintID = id[0];
-		for(uint8_t i = 1; i < sizeof(T); i++)
-		{
-			if(taintID != id[i])
-			{
-				throw(TaintingException("Unaligned read on Taint Object"));
-			}
-		}
-		return taintID;
 	}
 };
 

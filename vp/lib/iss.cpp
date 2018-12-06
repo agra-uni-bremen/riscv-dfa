@@ -107,8 +107,12 @@ Opcode::Mapping ISS::exec_step()
 		case Opcode::UNDEF:
 			throw std::runtime_error("unknown instruction");
 
-		case Opcode::SETTAINT:
+		case Opcode::SETTAINT_I:
 			regs[instr.rd()].setTaintId(instr.I_imm());
+			break;
+
+		case Opcode::SETTAINT_R:
+			regs[instr.rd()].setTaintId(regs[instr.rs1()]);
 			break;
 
 		case Opcode::GETTAINT:
