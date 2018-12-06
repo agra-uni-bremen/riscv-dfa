@@ -318,6 +318,7 @@ Opcode::Mapping ISS::exec_step()
 			break;
 
 		case Opcode::BLTU:
+			DEBUG(std::cout << regnames[instr.rs1()] << " < " << regnames[instr.rs2()] << std::endl);
 			if (regs[instr.rs1()].as<uint32_t>() < regs[instr.rs2()].as<uint32_t>())
 				pc = last_pc + instr.B_imm();
 			break;
