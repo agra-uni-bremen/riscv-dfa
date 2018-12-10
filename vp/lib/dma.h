@@ -138,7 +138,7 @@ struct SimpleDMA : public sc_core::sc_module {
         }
         else if (cmd == tlm::TLM_WRITE_COMMAND)
         {
-            *it->second = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr()));
+            *it->second = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(ptr));
         }
         else
         {

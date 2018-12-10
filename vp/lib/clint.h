@@ -117,8 +117,6 @@ struct CLINT : public clint_if,
 
             *it->second = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr()));
 
-            //std::cout << "[clint] write mtimecmp=" << mtimecmp << ", mtime=" << mtime << std::endl;
-
             irq_event.notify(delay);
         } else {
             assert (false && "unsupported tlm command for CLINT access");
