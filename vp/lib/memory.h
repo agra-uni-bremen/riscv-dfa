@@ -38,22 +38,12 @@ struct TaintedMemory : public sc_core::sc_module {
 
     void write_data(unsigned addr, const Taint<uint8_t> *src, unsigned num_bytes) {
         assert (addr + num_bytes <= size);
-        if(src[0].getTaintId() != 0)
-        	printf("writing tainted data\n");
         memcpy(data + addr, src, num_bytes * sizeof(Taint<uint8_t>));
     }
 
     void read_data(unsigned addr, Taint<uint8_t> *dst, unsigned num_bytes) {
         assert (addr + num_bytes <= size);
-
         memcpy(dst, data + addr, num_bytes * sizeof(Taint<uint8_t>));
-        for(uint8_t i = 0; i < num_bytes; i++)
-        {
-        	if(dst[i].getTaintId())
-        	{
-        		printf("reading tainted data\n");
-        	}
-        }
     }
 
     void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
