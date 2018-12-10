@@ -132,11 +132,13 @@ struct SimpleDMA : public sc_core::sc_module {
         // actual read/write
         if (cmd == tlm::TLM_READ_COMMAND)
         {
-            *((uint32_t *)ptr) = *it->second;
+            Taint<uint8_t> buf[4];
+            Taint<uint32_t>::expand(buf, *it->second);
+            memcpy(ptr, buf, 4 * sizeof(Taint<uint8_t>));
         }
         else if (cmd == tlm::TLM_WRITE_COMMAND)
         {
-            *it->second = *((uint32_t *)ptr);
+            *it->second = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr()));
         }
         else
         {

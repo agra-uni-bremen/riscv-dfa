@@ -302,21 +302,18 @@ public:
 		return ret;
 	}
 
-	void expand(Taint<uint8_t> ar[sizeof(T)])
+	static void expand(Taint<uint8_t> ar[sizeof(T)], T value, uint8_t taint = 0)
 	{
 		for(uint8_t i = 0; i < sizeof(T); i ++)
 		{
-			ar[i] = reinterpret_cast<uint8_t*>(&value)[i];
-			ar[i].setTaintId(getTaintId());
+			ar[i] = reinterpret_cast<uint8_t*>(&value)[i];\
+			ar[i].setTaintId(taint);
 		}
 	}
 
-	static void expand(Taint<uint8_t> ar[sizeof(T)], T value)
+	void expand(Taint<uint8_t> ar[sizeof(T)])
 	{
-		for(uint8_t i = 0; i < sizeof(T); i ++)
-		{
-			ar[i] = reinterpret_cast<uint8_t*>(&value)[i];
-		}
+		expand(ar, value, getTaintId());
 	}
 };
 
