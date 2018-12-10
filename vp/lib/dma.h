@@ -130,11 +130,16 @@ struct SimpleDMA : public sc_core::sc_module {
         assert (it != addr_to_reg.end());	// access to non-mapped address
 
         // actual read/write
-        if (cmd == tlm::TLM_READ_COMMAND) {
+        if (cmd == tlm::TLM_READ_COMMAND)
+        {
             *((uint32_t *)ptr) = *it->second;
-        } else if (cmd == tlm::TLM_WRITE_COMMAND) {
+        }
+        else if (cmd == tlm::TLM_WRITE_COMMAND)
+        {
             *it->second = *((uint32_t *)ptr);
-        } else {
+        }
+        else
+        {
             assert (false && "unsupported tlm command for dma access");
         }
 
