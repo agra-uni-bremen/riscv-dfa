@@ -123,10 +123,10 @@ Opcode::Mapping ISS::exec_step()
 						100 + instr.rs1(), regnames[instr.rs1()], 100 + instr.rs2(), regnames[instr.rs2()], (uint32_t)instr.B_imm());
 				break;
 		case Opcode::Type::U:
-				printf("\e[38;5;%um%s\e[39m, 0x%x", 100 + instr.rs1(), regnames[instr.rs1()], (uint32_t)instr.U_imm());
+				printf("\e[38;5;%um%s\e[39m, 0x%x", 100 + instr.rd(), regnames[instr.rd()], (uint32_t)instr.U_imm());
 				break;
 		case Opcode::Type::J:
-				printf("\e[38;5;%um%s\e[39m, 0x%x", 100 + instr.rs1(), regnames[instr.rs1()], (uint32_t)instr.J_imm());
+				printf("\e[38;5;%um%s\e[39m, 0x%x", 100 + instr.rd(), regnames[instr.rd()], (uint32_t)instr.J_imm());
 				break;
 		default:
 				printf("???");
@@ -448,15 +448,19 @@ Opcode::Mapping ISS::exec_step()
 
 		case Opcode::MULHU:
 		{
-			Taint<uint64_t> ans = regs[instr.rs1()].as<uint64_t>() * regs[instr.rs2()].as<uint64_t>();
+			DEBUG(std::cout << "\t" << regs[instr.rs1()] << " * " << regs[instr.rs2()]);
+			Taint<uint64_t> ans = regs[instr.rs1()].as<uint32_t>().as<uint64_t>() * regs[instr.rs2()].as<uint32_t>().as<uint64_t>();
 			regs[instr.rd()] = (ans & 0xFFFFFFFF00000000) >> 32;
+			DEBUG(std::cout << " = " << regs[instr.rd()] << std::endl);
 			break;
 		}
 
 		case Opcode::MULHSU:
 		{
-			Taint<uint64_t> ans = regs[instr.rs1()].as<uint64_t>() * regs[instr.rs2()].as<uint64_t>();
+			DEBUG(std::cout << "\t" << regs[instr.rs1()] << " * " << regs[instr.rs2()]);
+			Taint<uint64_t> ans = regs[instr.rs1()].as<int64_t>() * regs[instr.rs2()].as<uint32_t>().as<uint64_t>();
 			regs[instr.rd()] = (ans & 0xFFFFFFFF00000000) >> 32;
+			DEBUG(std::cout << " = " << regs[instr.rd()] << std::endl);
 			break;
 		}
 

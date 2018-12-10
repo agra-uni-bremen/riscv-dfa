@@ -143,6 +143,14 @@ Opcode::Type Opcode::getType(Opcode::Mapping mapping)
         case SRA:
         case OR:
         case AND:
+        case MUL:
+        case MULH:
+        case MULHSU:
+        case MULHU:
+        case DIV:
+        case DIVU:
+        case REM:
+        case REMU:
         case SETTAINT_R:
                 return Type::R;
         case JALR:

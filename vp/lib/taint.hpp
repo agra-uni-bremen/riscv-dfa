@@ -14,8 +14,8 @@
 
 #include "tlm_core/tlm_2/tlm_generic_payload/tlm_gp.h"
 
-//#define DEBUG(x) x;
-#define DEBUG(x) ;
+#define DEBUG(x) x;
+//#define DEBUG(x) ;
 
 struct TaintingException : public std::exception
 {

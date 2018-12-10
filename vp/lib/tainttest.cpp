@@ -6,16 +6,25 @@
  */
 
 
-#include "taint.hpp"
+//#include "taint.hpp"
 #include <iostream>
 #include <stdint.h>
 #include <assert.h>
+
 
 using namespace std;
 
 int main()
 {
-	uint8_t b = 10;
+	int32_t i = -1;
+	uint64_t r = i;
+
+	cout << r << endl;
+
+	uint32_t r2 = i;
+	cout << (uint64_t) r2 << endl;
+
+	/*uint8_t b = 10;
 	Taint<uint8_t> t = b;
 
 	uint8_t c = t;
@@ -42,6 +51,6 @@ int main()
 	cout << "Sizeof Taint<uint8_t>  : " << sizeof(Taint<uint8_t>)  << endl;
 	cout << "Sizeof Taint<uint16_t> : " << sizeof(Taint<uint16_t>) << endl;
 	cout << "Sizeof Taint<uint32_t> : " << sizeof(Taint<uint32_t>) << endl;
-
+	 */
 	exit(EXIT_SUCCESS);
 }
