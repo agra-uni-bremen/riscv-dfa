@@ -104,14 +104,18 @@ struct CLINT : public clint_if,
         delay += clock_cycle;
         sc_core::sc_time now = sc_core::sc_time_stamp() + delay;
 
-        if (trans.get_command() == tlm::TLM_READ_COMMAND) {
+        if (trans.get_command() == tlm::TLM_READ_COMMAND)
+        {
             mtime = now.value() / scaler;
-
-            *((uint32_t *)trans.get_data_ptr()) = *it->second;
-        } else if (trans.get_command() == tlm::TLM_WRITE_COMMAND) {
+            Taint<uint8_t> buf[4];
+            Taint<uint32_t>::expand(buf, *it->second);
+            memcpy(trans.get_data_ptr(), buf, 4 * sizeof(Taint<uint8_t>));
+        }
+        else if (trans.get_command() == tlm::TLM_WRITE_COMMAND)
+        {
             assert (trans.get_address() != 0xbff8 && trans.get_address() != 0xbffc);    // mtime is readonly
 
-            *it->second = *((uint32_t *)trans.get_data_ptr());
+            *it->second = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr()));
 
             //std::cout << "[clint] write mtimecmp=" << mtimecmp << ", mtime=" << mtime << std::endl;
 

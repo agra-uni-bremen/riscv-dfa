@@ -86,7 +86,7 @@ public:
 			{
 				if(taint == 0)
 				{
-					std::cerr << "unaligned confinde on Taint Objects?" << std::endl;
+					std::cerr << "unaligned confine on Taint Objects?" << std::endl;
 					taint = ar[i].getTaintId();
 				}
 				else
@@ -308,6 +308,14 @@ public:
 		{
 			ar[i] = reinterpret_cast<uint8_t*>(&value)[i];
 			ar[i].setTaintId(getTaintId());
+		}
+	}
+
+	static void expand(Taint<uint8_t> ar[sizeof(T)], T value)
+	{
+		for(uint8_t i = 0; i < sizeof(T); i ++)
+		{
+			ar[i] = reinterpret_cast<uint8_t*>(&value)[i];
 		}
 	}
 };
