@@ -200,6 +200,19 @@ namespace Opcode {
         NUMBER_OF_INSTRUCTIONS
     };
 
+    enum class Type : uint8_t
+    {
+        UNKNOWN = 0,
+        R,
+                I,
+                S,
+                B,
+                U,
+                J,
+    };
+
+    Type getType(Mapping mapping);
+
     extern const char* mappingStr[];
 
 }

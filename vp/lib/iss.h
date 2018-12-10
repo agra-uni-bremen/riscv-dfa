@@ -139,9 +139,7 @@ struct RegFile {
 
     void show() {
         for (int i=0; i<NUM_REGS; ++i) {
-        	//printf("%s = 0x%08x (%u)\n", regnames[i], uint32_t(regs[i]), regs[i].getTaintId());
-        	printf("%s = 0x%08x\n", regnames[i], uint32_t(regs[i]));
-            //std::cout << regnames[i] << " = " << uint32_t(regs[i]) << " (" << uint8_t(regs[i].getTaintId()) << ")" << std::endl;
+        	printf("\e[38;5;%um%s\e[39m = 0x%08x %s\n", 100 + i, regnames[i], *reinterpret_cast<uint32_t*>(&regs[i]), regs[i].getTaintId() > 0 ? "*" : "");
         }
     }
 };

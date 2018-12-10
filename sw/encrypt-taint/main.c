@@ -7,12 +7,9 @@ void setTaint(uint8_t* word, uint8_t const taint, uint16_t const size)
 	{
 		asm volatile
 		(
-		"lbu a0, 0(%[ptr])\n\t"
-		"settaint  a0, %[taint]\n\t"
-		"sb a0, 0(%[ptr])\n\t"
-		:
-		: [taint] "r" (taint), [ptr] "r" (&word[i])
-		: "a0"
+		"settaint  %[word], %[taint]\n\t"
+		: [word] "+r" (word[i])
+		: [taint] "r" (taint)
 		);
 	}
 }
@@ -37,24 +34,24 @@ void ultraSecureCrypt(uint8_t* plain, uint8_t* key, uint8_t* cipher, uint16_t si
 	}
 }
 
+#define blksz 100
+uint8_t plaintext[blksz];
+uint8_t key[blksz];
+uint8_t ciphertext[blksz];
+
 int main()
 {
-	const uint16_t blksz = 100;
-	uint8_t plaintext[blksz];
-	uint8_t key[blksz];
-	uint8_t ciphertext[blksz];
+	strcpy(plaintext, "Dies ist ein sehr geheimer Text.");
+	strcpy(key, "Dies ist ein sehr geheimer Schluessel.");
 
 	setTaint(plaintext, 1, blksz);
 	setTaint(key, 1, blksz);
 
-	strcpy(plaintext, "Dies ist ein sehr geheimer Text.");
-	strcpy(key, "Dies ist ein sehr geheimer Schluessel.");
-
 	ultraSecureCrypt(plaintext, key, ciphertext, blksz);
 
 	//this should fail
-	printf("%10s\n", plaintext);
-	printf("%10s\n", key);
+	//printf("%10s\n", plaintext);
+	//printf("%10s\n", key);
 
 	printf("Plaintext has taint: %u\n", getTaint(plaintext));
 	printf("Key       has taint: %u\n", getTaint(key));
