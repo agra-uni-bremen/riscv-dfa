@@ -52,7 +52,7 @@ int main() {
 	uint8_t src[] = "Meine Ohmer faehrt im Huehnerstall mortorrard";
 	uint8_t dst[sizeof(src)] = { 0 };
 	
-	setTaint(src, 1, 32);
+	setTaint(src, 1, sizeof(src));
 
 	dma_completed = 0;
 	*DMA_SRC_ADDR = (uint32_t)(&src[0]);
