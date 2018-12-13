@@ -19,16 +19,19 @@ struct SimpleSensor : public sc_core::sc_module {
     sc_core::sc_event run_event;
 
     // memory mapped data frame
-    std::array<uint8_t, 64> data_frame;
+    std::array<Taint<uint8_t>, 64> data_frame;
 
     // memory mapped configuration registers
     uint32_t scaler = 25;
     uint32_t filter = 0;
+    uint32_t taint = 2;
+
     std::unordered_map<uint64_t, uint32_t *> addr_to_reg;
 
     enum {
         SCALER_REG_ADDR = 0x80,
         FILTER_REG_ADDR = 0x84,
+        TAINT_REG_ADDR = 0x88,
     };
 
     SC_HAS_PROCESS(SimpleSensor);
@@ -41,6 +44,7 @@ struct SimpleSensor : public sc_core::sc_module {
         addr_to_reg = {
                 {SCALER_REG_ADDR, &scaler},
                 {FILTER_REG_ADDR, &filter},
+                {TAINT_REG_ADDR, &taint},
         };
     }
 
@@ -56,7 +60,7 @@ struct SimpleSensor : public sc_core::sc_module {
             assert ((addr + len) <= data_frame.size());
 
             // return last generated random data at requested address
-            memcpy(ptr, &data_frame[addr], len);
+            memcpy(ptr, &data_frame[addr], sizeof(Taint<uint8_t>) * len);
         } else {
             assert (len == 4);	// NOTE: only allow to read/write whole register
 
@@ -65,16 +69,18 @@ struct SimpleSensor : public sc_core::sc_module {
 
             // trigger pre read/write actions
             if ((cmd == tlm::TLM_WRITE_COMMAND) && (addr == SCALER_REG_ADDR)) {
-                uint32_t value = *((uint32_t *)ptr);
+                uint32_t value = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(ptr));
                 if (value < 1 || value > 100)
                     return;	// ignore invalid values
             }
 
             // actual read/write
             if (cmd == tlm::TLM_READ_COMMAND) {
-                *((uint32_t *)ptr) = *it->second;
+            	Taint<uint8_t> buf[4];
+            	Taint<uint32_t>::expand(buf, *it->second);
+                memcpy(ptr, buf, sizeof(Taint<uint8_t>) * 4);
             } else if (cmd == tlm::TLM_WRITE_COMMAND) {
-                *it->second = *((uint32_t *)ptr);
+                *it->second = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(ptr));
             } else {
                 assert (false && "unsupported tlm command for sensor access");
             }
@@ -95,12 +101,12 @@ struct SimpleSensor : public sc_core::sc_module {
             // fill with random data
             for (auto &n : data_frame) {
                 if (filter == 1) {
-                    n = rand() % 10 + 48;
+                    n = Taint<uint32_t>(rand() % 10 + 48, taint);
                 } else if (filter == 2) {
-                    n = rand() % 26 + 65;
+                    n = Taint<uint32_t>(rand() % 26 + 65, taint);
                 } else {
                     // fallback for all other filter values
-                    n = rand() % 92 + 32; // random printable char
+                    n = Taint<uint32_t>(rand() % 92 + 32, taint); // random printable char
                 }
             }
 

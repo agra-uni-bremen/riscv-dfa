@@ -14,8 +14,8 @@
 
 #include "tlm_core/tlm_2/tlm_generic_payload/tlm_gp.h"
 
-#define DEBUG(x) x;
-//#define DEBUG(x) ;
+//#define DEBUG(x) x;
+#define DEBUG(x) ;
 
 struct TaintingException : public std::exception
 {
@@ -75,6 +75,13 @@ public:
 		//DEBUG(std::cout << "Construct from basetype " << int(other) << std::endl);
 		value = other;
 		memset(id, 0, sizeof(T));
+	}
+
+	Taint(const T other, uint8_t taint)
+	{
+		//DEBUG(std::cout << "Construct from basetype " << int(other) << " with taint " << int(taint) << std::endl);
+		value = other;
+		setTaintId(taint);
 	}
 
 	Taint(Taint<uint8_t> ar[sizeof(T)])
