@@ -13,4 +13,6 @@ add_executable(riscv-vp
         gdb_stub.cpp
         ${HEADERS})
 
+INSTALL(TARGETS riscv-vp RUNTIME DESTINATION bin)
+
 target_link_libraries(riscv-vp ${Boost_LIBRARIES} ${SystemC_LIBRARIES} pthread)

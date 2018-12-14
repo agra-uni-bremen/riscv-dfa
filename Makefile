@@ -1,6 +1,9 @@
+all: vp/build/Makefile
+	make install -C vp/build -l4
+
 vp/build/Makefile:
 	mkdir vp/build || true
 	cd vp/build && cmake ..
 
-all: vp/build/Makefile
-	make -C vp/build -j 4
+clean:
+	rm -rf vp/build
