@@ -64,12 +64,17 @@ int main() {
 		asm volatile ("wfi");
 	}
 	
+	printf("src taint ID: %u\n", getTaint(dst));
 	printf("dst taint ID: %u\n", getTaint(dst));
 
-	for (int i=0; i<sizeof(src); ++i) {
+	//this would fail
+	/*
+	for (int i=0; i<sizeof(src); ++i)
+	{
 		*TERMINAL_ADDR = dst[i];
 	}
 	*TERMINAL_ADDR = '\n';
+	*/
 
 	return 0;
 }
