@@ -49,7 +49,7 @@ uint8_t getTaint(uint8_t* const word)
 int main() {
 	register_interrupt_handler(4, dma_irq_handler);
 	
-	uint8_t src[] = "Meine Ohmer faehrt im Huehnerstall mortorrard";
+	uint8_t src[] = "Meine Ohmer faehrt im Huehnerstall motorrard";
 	uint8_t dst[sizeof(src)] = { 0 };
 	
 	setTaint(src, 1, sizeof(src));

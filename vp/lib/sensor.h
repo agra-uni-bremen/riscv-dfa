@@ -31,7 +31,7 @@ struct SimpleSensor : public sc_core::sc_module {
     enum {
         SCALER_REG_ADDR = 0x80,
         FILTER_REG_ADDR = 0x84,
-        TAINT_REG_ADDR = 0x88,
+        TAINT_REG_ADDR  = 0x88,
     };
 
     SC_HAS_PROCESS(SimpleSensor);

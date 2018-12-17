@@ -8,6 +8,7 @@ static volatile char * const TERMINAL_ADDR = (char * const)0x20000000;
 static volatile char * const SENSOR_INPUT_ADDR = (char * const)0x50000000;
 static volatile uint32_t * const SENSOR_SCALER_REG_ADDR = (uint32_t * const)0x50000080;
 static volatile uint32_t * const SENSOR_FILTER_REG_ADDR = (uint32_t * const)0x50000084;
+static volatile uint32_t * const SENSOR_TAINT_REG_ADDR  = (uint32_t * const)0x50000088;
 
 void setTaint(uint8_t* word, uint8_t const taint, uint16_t const size)
 {
@@ -71,8 +72,17 @@ int main() {
 	*SENSOR_SCALER_REG_ADDR = 5;
 	*SENSOR_FILTER_REG_ADDR = 2;
 
-	for (int i=0; i<3; ++i)
+	for (int i=0; i<2; ++i)
 		dump_sensor_data();
+
+	printf("Setting sensor taint to 0\n");
+
+	*SENSOR_FILTER_REG_ADDR = 1;
+	*SENSOR_TAINT_REG_ADDR = 0;
+
+	for (int i=0; i<2; ++i)
+		dump_sensor_data();
+
 
 	return 0;
 }
