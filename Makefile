@@ -7,3 +7,5 @@ vp/build/Makefile:
 
 clean:
 	rm -rf vp/build
+
+clean-all: clean
