@@ -64,7 +64,7 @@ int main() {
 		asm volatile ("wfi");
 	}
 	
-	printf("src taint ID: %u\n", getTaint(dst));
+	printf("src taint ID: %u\n", getTaint(src));
 	printf("dst taint ID: %u\n", getTaint(dst));
 
 	//this would fail
