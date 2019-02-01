@@ -69,26 +69,40 @@ uint8_t ciphertext[blksz];
 uint8_t plaintext[blksz];
 uint8_t key[blksz];
 
+uint8_t mergeMask = 0b1100000;
+
+enum MergeStrategy
+{
+	forbidden = 0b00000000,
+	highest   = 0b01000000,
+	merge	  = 0b10000000,
+	error	  = 0b11000000
+};
+
 int main()
 {
 	printf("Plaintext at %4p\n", plaintext);
 	printf("Key       at %4p\n", key);
 	printf("Cipher    at %4p\n", ciphertext);
 
-	strcpy(plaintext, "Dies ist ein sehr geheimer Text.");
 	strcpy(key,       "MeineOmaFaehrtImHuenerstallMotor");
+	strcpy(plaintext, "Dies ist ein sehr geheimer Text.");
 
-	setTaint(plaintext, 1, blksz);
-	//this would fail
-	//setTaint(key, 2, blksz);
-	setTaint(key, 1, blksz);
+	setTaint(plaintext, merge | 1, blksz);
+	setTaint(key      , merge | 2, blksz);
+
+	printf("Before crypt:\n");
+	printf("Plaintext has taint: %u\n", getTaint(plaintext));
+	printf("Key       has taint: %u\n", getTaint(key));
+	printf("Cipher    has taint: %u\n", getTaint(ciphertext));
 
 	ultraSecureCrypt(plaintext, key, ciphertext, blksz);
 
-	//this should fail
+	//this would fail
 	//printf("%10s\n", plaintext);
 	//printf("%10s\n", key);
 
+	printf("After crypt:\n");
 	printf("Plaintext has taint: %u\n", getTaint(plaintext));
 	printf("Key       has taint: %u\n", getTaint(key));
 	printf("Cipher    has taint: %u\n", getTaint(ciphertext));
@@ -101,8 +115,8 @@ int main()
 	//This is ok
 	printHex(ciphertext, blksz);
 
-	//this would fail (buffer overflow from an imaginary buffer before plaintext
-	//printHex(plaintext - blksz, 2 * blksz);
+	//this would fail (buffer overflow)
+	//printHex(ciphertext - 2 * blksz, 2 * blksz);
 
-	return 1;
+	return 0;
 }
