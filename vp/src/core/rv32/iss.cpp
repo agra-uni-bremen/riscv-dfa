@@ -134,6 +134,8 @@ Opcode::Mapping ISS::exec_step()
 		puts("");
 	)
 
+	try
+	{
 	switch (op) {
 		case Opcode::UNDEF:
 			throw std::runtime_error("unknown instruction");
@@ -639,6 +641,11 @@ Opcode::Mapping ISS::exec_step()
 
 		default:
 			assert (false && "unknown opcode");
+	}
+	}catch( const TaintingException& exception)
+	{
+		std::cerr << exception.what() << std::endl;
+		status = CoreExecStatus::Terminated;
 	}
 
 	//NOTE: writes to zero register are supposedly allowed but must be ignored (reset it after every instruction, instead of checking *rd != zero* before every register write)
