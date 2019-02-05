@@ -6,25 +6,20 @@
  */
 
 
-//#include "taint.hpp"
+#include "../core/rv32/taint.hpp"
 #include <iostream>
 #include <stdint.h>
 #include <assert.h>
-
 
 using namespace std;
 
 int main()
 {
-	int32_t i = -1;
-	uint64_t r = i;
+	cout << "Sizeof Taint<uint8_t>  : " << sizeof(Taint<uint8_t>)  << endl;
+	cout << "Sizeof Taint<uint16_t> : " << sizeof(Taint<uint16_t>) << endl;
+	cout << "Sizeof Taint<uint32_t> : " << sizeof(Taint<uint32_t>) << endl;
 
-	cout << r << endl;
-
-	uint32_t r2 = i;
-	cout << (uint64_t) r2 << endl;
-
-	/*uint8_t b = 10;
+	uint8_t b = 10;
 	Taint<uint8_t> t = b;
 
 	uint8_t c = t;
@@ -47,10 +42,20 @@ int main()
 	}
 	assert(threw);
 
+	threw = false;
+	try
+	{
+		c = t2.demote(2);	//should throw
+	}
+	catch(TaintingException& ex)
+	{
+		cerr << "Correct error: " << ex.what() << endl;
+		threw = true;
+	}
+	assert(threw);
 
-	cout << "Sizeof Taint<uint8_t>  : " << sizeof(Taint<uint8_t>)  << endl;
-	cout << "Sizeof Taint<uint16_t> : " << sizeof(Taint<uint16_t>) << endl;
-	cout << "Sizeof Taint<uint32_t> : " << sizeof(Taint<uint32_t>) << endl;
-	 */
+	c = t2.demote(1);
+
+
 	exit(EXIT_SUCCESS);
 }

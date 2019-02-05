@@ -5,6 +5,7 @@
 
 
 static volatile char * const TERMINAL_ADDR = (char * const)0x20000000;
+static volatile char * const SECTERMINAL_ADDR = (char * const)0x21000000;
 static volatile char * const SENSOR_INPUT_ADDR = (char * const)0x50000000;
 static volatile uint32_t * const SENSOR_SCALER_REG_ADDR = (uint32_t * const)0x50000080;
 static volatile uint32_t * const SENSOR_FILTER_REG_ADDR = (uint32_t * const)0x50000084;
@@ -41,7 +42,8 @@ void sensor_irq_handler() {
 	has_sensor_data = 1;
 }
 
-void dump_sensor_data() {
+void dump_sensor_data(volatile char * const sink) {
+	printf("Dumping sensor data\n");
 	while (!has_sensor_data) {
 		asm volatile ("wfi");
 	}
@@ -55,15 +57,12 @@ void dump_sensor_data() {
 
 	printf("Sensor has taint: %u\n", getTaint(buf));
 
-	setTaint(buf, 0, 64);
-
 	for (int i=0; i<64; ++i)
 	{
-		//this would fail without settaint before
-		*TERMINAL_ADDR = buf[i];
+		*sink = buf[i];
 	}
 
-	*TERMINAL_ADDR = '\n';
+	*sink = '\n';
 }
 
 int main() {
@@ -71,18 +70,21 @@ int main() {
 	
 	*SENSOR_SCALER_REG_ADDR = 5;
 	*SENSOR_FILTER_REG_ADDR = 2;
+	*SENSOR_TAINT_REG_ADDR = 1;
+
+	//this would fail
+	for (int i=0; i<2; ++i)
+		dump_sensor_data(TERMINAL_ADDR);
 
 	for (int i=0; i<2; ++i)
-		dump_sensor_data();
+		dump_sensor_data(SECTERMINAL_ADDR);
 
 	printf("Setting sensor taint to 0\n");
 
-	*SENSOR_FILTER_REG_ADDR = 1;
 	*SENSOR_TAINT_REG_ADDR = 0;
 
 	for (int i=0; i<2; ++i)
-		dump_sensor_data();
-
+		dump_sensor_data(TERMINAL_ADDR);
 
 	return 0;
 }

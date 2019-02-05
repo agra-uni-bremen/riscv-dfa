@@ -1,5 +1,4 @@
-#ifndef RISCV_ISA_TERMINAL_H
-#define RISCV_ISA_TERMINAL_H
+#pragma once
 
 #include "systemc"
 
@@ -14,7 +13,7 @@ struct SimpleTerminal : public sc_core::sc_module {
         tsock.register_b_transport(this, &SimpleTerminal::transport);
     }
 
-    void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
+    void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time& ) {
         sc_assert (trans.get_command() == tlm::TLM_WRITE_COMMAND);
         sc_assert (trans.get_data_length() == 1);
 
@@ -25,5 +24,27 @@ struct SimpleTerminal : public sc_core::sc_module {
     }
 };
 
+struct SecureTerminal : public sc_core::sc_module {
 
-#endif //RISCV_ISA_TERMINAL_H
+    tlm_utils::simple_target_socket<SecureTerminal> tsock;
+    Taintlevel level;
+
+
+    SecureTerminal(sc_core::sc_module_name) : level(0) {
+        tsock.register_b_transport(this, &SecureTerminal::transport);
+    }
+
+    SecureTerminal(sc_core::sc_module_name, Taintlevel level) : level(level) {
+        tsock.register_b_transport(this, &SecureTerminal::transport);
+    }
+
+    void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time& ) {
+        sc_assert (trans.get_command() == tlm::TLM_WRITE_COMMAND);
+        sc_assert (trans.get_data_length() == 1);
+
+        //this may throw if tainted differently
+        char c = reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr())->demote(level);
+
+        std::cout << c;
+    }
+};

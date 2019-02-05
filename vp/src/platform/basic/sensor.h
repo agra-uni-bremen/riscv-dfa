@@ -52,15 +52,15 @@ struct SimpleSensor : public sc_core::sc_module {
         auto addr = trans.get_address();
         auto cmd  = trans.get_command();
         auto len  = trans.get_data_length();
-        auto ptr  = trans.get_data_ptr();
+        auto ptr  = reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr());
 
-        if (addr >= 0 && addr <= 63) {
+        if (addr <= 63) {
             // access data frame
             assert (cmd == tlm::TLM_READ_COMMAND);
             assert ((addr + len) <= data_frame.size());
 
             // return last generated random data at requested address
-            memcpy(ptr, &data_frame[addr], sizeof(Taint<uint8_t>) * len);
+            memcpy((void*)ptr, &data_frame[addr], sizeof(Taint<uint8_t>) * len);
         } else {
             assert (len == 4);	// NOTE: only allow to read/write whole register
 
@@ -69,7 +69,7 @@ struct SimpleSensor : public sc_core::sc_module {
 
             // trigger pre read/write actions
             if ((cmd == tlm::TLM_WRITE_COMMAND) && (addr == SCALER_REG_ADDR)) {
-                uint32_t value = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(ptr));
+                uint32_t value = Taint<uint32_t>(ptr);
                 if (value < 1 || value > 100)
                     return;	// ignore invalid values
             }
@@ -78,9 +78,9 @@ struct SimpleSensor : public sc_core::sc_module {
             if (cmd == tlm::TLM_READ_COMMAND) {
             	Taint<uint8_t> buf[4];
             	Taint<uint32_t>::expand(buf, *it->second);
-                memcpy(ptr, buf, sizeof(Taint<uint8_t>) * 4);
+                memcpy((void*)ptr, buf, sizeof(Taint<uint8_t>) * 4);
             } else if (cmd == tlm::TLM_WRITE_COMMAND) {
-                *it->second = Taint<uint32_t>(reinterpret_cast<Taint<uint8_t>*>(ptr));
+                *it->second = Taint<uint32_t>(ptr);
             } else {
                 assert (false && "unsupported tlm command for sensor access");
             }

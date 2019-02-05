@@ -12,8 +12,6 @@
 #include <exception>
 #include <cstring>
 
-#include "tlm_core/tlm_2/tlm_generic_payload/tlm_gp.h"
-
 //#define DEBUG(x) x;
 #define DEBUG(x) ;
 
@@ -28,29 +26,36 @@ struct TaintingException : public std::exception
 	}
 };
 
-static constexpr uint8_t mergeMask = 0b11000000;
 
-enum MergeStrategy
+typedef uint8_t Taintlevel;
+static constexpr Taintlevel mergeMask = 0b10000000;
+
+enum MergeStrategy : Taintlevel
 {
 	forbidden = 0b00000000,
-	highest   = 0b01000000,
-	merge	  = 0b10000000,
-	error	  = 0b11000000
+	highest   = 0b10000000,
 };
 
 
 template<typename T> class Taint
 {
 	T value;
-	uint8_t id[sizeof(T)];
+	Taintlevel id[sizeof(T)];
 
 public:
-	void setTaintId(uint8_t taintID)
+	void setTaintId(Taintlevel taintID)
 	{
+		//if forbidden, this fails. If highest, the highest ID may only be lower or equal
+		uint8_t max = mergeTaintingValues(getTaintId(), taintID);
+		if(taintID < max)
+		{
+			throw(TaintingException("Changing taint ID from " + std::to_string(getTaintId())
+									+ " to " + std::to_string(taintID)));
+		}
 		memset(id, taintID, sizeof(T));
 	}
 
-	uint8_t getTaintId() const
+	Taintlevel getTaintId() const
 	{
 		uint8_t taintID = id[0];
 		for(uint8_t i = 1; i < sizeof(T); i++)
@@ -88,7 +93,7 @@ public:
 		memset(id, 0, sizeof(T));
 	}
 
-	Taint(const T other, uint8_t taint)
+	Taint(const T other, Taintlevel taint)
 	{
 		//DEBUG(std::cout << "Construct from basetype " << int(other) << " with taint " << int(taint) << std::endl);
 		value = other;
@@ -97,7 +102,7 @@ public:
 
 	Taint(Taint<uint8_t> ar[sizeof(T)])
 	{
-		uint8_t taint = ar[0].getTaintId();
+		Taintlevel taint = ar[0].getTaintId();
 		for(uint8_t i = 0; i < sizeof(T); i ++)
 		{
 			if(taint != ar[i].getTaintId())
@@ -113,9 +118,9 @@ public:
 				}
 			}
 			//magic that relies that value is first byte in ar[i]
-			reinterpret_cast<uint8_t*>(&value)[i] = *reinterpret_cast<uint8_t*>(&ar[i]);
+			reinterpret_cast<uint8_t*>(&value)[i] = ar[i].demote(taint);
 		}
-		setTaintId(taint);
+		memset(id, taint, sizeof(T));
 	}
 
 	friend void swap(Taint<T>& lhs, Taint<T>& rhs)
@@ -124,7 +129,7 @@ public:
 		std::swap(lhs.id, rhs.id);
 	}
 
-	uint8_t mergeTaintingValues(const uint8_t a, const uint8_t b)
+	static Taintlevel mergeTaintingValues(const Taintlevel a, const Taintlevel b)
 	{
 		if(a == b)
 		{
@@ -156,8 +161,6 @@ public:
 					return 0;
 				case MergeStrategy::highest:
 					return a > b ? a : b;
-				case MergeStrategy::merge:
-					return a | b;
 				default:
 					throw(TaintingException("invalid merging policy"));
 				}
@@ -295,29 +298,23 @@ public:
 		return ret;
 	}
 
+	T demote(Taintlevel level) const
+	{
+		//if forbidden, this fails. If highest, the highest ID may only be lower or equal
+		uint8_t max = mergeTaintingValues(getTaintId(), level);
+		if(level < max)
+		{
+			throw TaintingException("Invalid demotion of ID " + std::to_string(getTaintId()) + " (allowed: " + std::to_string(level) + ")");
+		}
+		return value;
+	}
+
 	operator T() const
 	{
-		//DEBUG(std::cout << "Demotion of " << int(value) << " id (" << int(getTaintId()) << ")" << std::endl);
-		for(uint8_t i = 0; i < sizeof(T); i++)
-		{
-			if(id[i] != 0)
-			{
-				throw TaintingException("Invalid demotion of ID " + std::to_string(id[i]));
-			}
-		}
-		return value;
+		return demote(0);
 	}
 
-	T demote(uint8_t allowedId)
-	{
-		uint8_t target = mergeTaintingValues(getTaintId(), allowedId);
-		if(allowedId < target)
-		{
-			throw TaintingException("Invalid demotion of ID " + std::to_string(getTaintId()) + " (allowed :" + std::to_string(allowedId) + ")");
-		}
-		return value;
-	}
-
+	//debugging only
 	T peek()
 	{
 		if(id[0] != 0)
@@ -346,7 +343,7 @@ public:
 		return ret;
 	}
 
-	static void expand(Taint<uint8_t> ar[sizeof(T)], T value, uint8_t taint = 0)
+	static void expand(Taint<uint8_t> ar[sizeof(T)], T value, Taintlevel taint = 0)
 	{
 		for(uint8_t i = 0; i < sizeof(T); i ++)
 		{
