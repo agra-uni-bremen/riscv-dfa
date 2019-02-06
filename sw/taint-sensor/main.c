@@ -73,18 +73,15 @@ int main() {
 	*SENSOR_TAINT_REG_ADDR = 1;
 
 	//this would fail
-	for (int i=0; i<2; ++i)
-		dump_sensor_data(TERMINAL_ADDR);
+	//dump_sensor_data(TERMINAL_ADDR);
 
-	for (int i=0; i<2; ++i)
-		dump_sensor_data(SECTERMINAL_ADDR);
+	dump_sensor_data(SECTERMINAL_ADDR);
 
 	printf("Setting sensor taint to 0\n");
 
 	*SENSOR_TAINT_REG_ADDR = 0;
 
-	for (int i=0; i<2; ++i)
-		dump_sensor_data(TERMINAL_ADDR);
+	dump_sensor_data(TERMINAL_ADDR);
 
 	return 0;
 }

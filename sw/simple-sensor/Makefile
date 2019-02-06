@@ -1,5 +1,5 @@
 all : main.c irq.c irq.h bootstrap.S
-	riscv32-unknown-elf-gcc main.c irq.c bootstrap.S -o main -nostartfiles -Wl,--no-relax
+	riscv32-unknown-elf-gcc -g2 main.c irq.c bootstrap.S -o main -nostartfiles -Wl,--no-relax
 	
 dump-elf: all
 	riscv32-unknown-elf-readelf -a main

@@ -49,8 +49,15 @@ public:
 		uint8_t max = mergeTaintingValues(getTaintId(), taintID);
 		if(taintID < max)
 		{
-			throw(TaintingException("Changing taint ID from " + std::to_string(getTaintId())
+			if(taintID == 0)
+			{
+				throw(TaintingException("Invalid Demotion from " + std::to_string(getTaintId())));
+			}
+			else
+			{
+				throw(TaintingException("Changing taint ID from " + std::to_string(getTaintId())
 									+ " to " + std::to_string(taintID)));
+			}
 		}
 		memset(id, taintID, sizeof(T));
 	}
@@ -97,7 +104,7 @@ public:
 	{
 		//DEBUG(std::cout << "Construct from basetype " << int(other) << " with taint " << int(taint) << std::endl);
 		value = other;
-		setTaintId(taint);
+		memset(id, taint, sizeof(T));
 	}
 
 	Taint(Taint<uint8_t> ar[sizeof(T)])
@@ -173,7 +180,7 @@ public:
 		//DEBUG(std::cout << "Move operator = " << int(other.value) << " id (" << int(other.getTaintId()) << ")" << std::endl);
 		if(id[0] != 0 && other.id[0] != id[0])
 		{
-			DEBUG(std::cout << "Overwriting tainted value " << int(id[0]) << " with " << int(other.id[0]) << std::endl);
+			DEBUG(std::cout << "Overwriting tainted value " << Taintlevel(id[0]) << " with " << Taintlevel(other.id[0]) << std::endl);
 		}
 		Taint<T> temp(other);
 		swap(*this, temp);
@@ -319,7 +326,7 @@ public:
 	{
 		if(id[0] != 0)
 		{
-			std::cout << "Warning: Peeking into Object with taint ID " << int(id[0]) << std::endl;
+			std::cout << "Warning: Peeking into Object with taint ID " << Taintlevel(id[0]) << std::endl;
 		}
 		return value;
 	}
