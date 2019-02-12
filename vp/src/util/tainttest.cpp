@@ -5,17 +5,15 @@
  *      Author: dwd
  */
 
-
-#include "../core/rv32/taint.hpp"
-#include <iostream>
-#include <stdint.h>
 #include <assert.h>
+#include <stdint.h>
+#include <iostream>
+#include "../core/rv32/taint.hpp"
 
 using namespace std;
 
-int main()
-{
-	cout << "Sizeof Taint<uint8_t>  : " << sizeof(Taint<uint8_t>)  << endl;
+int main() {
+	cout << "Sizeof Taint<uint8_t>  : " << sizeof(Taint<uint8_t>) << endl;
 	cout << "Sizeof Taint<uint16_t> : " << sizeof(Taint<uint16_t>) << endl;
 	cout << "Sizeof Taint<uint32_t> : " << sizeof(Taint<uint32_t>) << endl;
 
@@ -31,31 +29,24 @@ int main()
 	Taint<uint32_t> t2 = t;
 
 	bool threw = false;
-	try
-	{
-		c = t2;	//should throw
-	}
-	catch(TaintingException& ex)
-	{
+	try {
+		c = t2;  // should throw
+	} catch (TaintingException& ex) {
 		cerr << "Correct error: " << ex.what() << endl;
 		threw = true;
 	}
 	assert(threw);
 
 	threw = false;
-	try
-	{
-		c = t2.demote(2);	//should throw
-	}
-	catch(TaintingException& ex)
-	{
+	try {
+		c = t2.demote(2);  // should throw
+	} catch (TaintingException& ex) {
 		cerr << "Correct error: " << ex.what() << endl;
 		threw = true;
 	}
 	assert(threw);
 
 	c = t2.demote(1);
-
 
 	exit(EXIT_SUCCESS);
 }

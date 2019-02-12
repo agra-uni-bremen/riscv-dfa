@@ -1,12 +1,12 @@
 #ifndef RISCV_ISA_SYSCALL_H
 #define RISCV_ISA_SYSCALL_H
 
-#include "stdint.h"
 #include "assert.h"
+#include "stdint.h"
 
 #include "taint.hpp"
 
-//see: newlib/libgloss/riscv @ https://github.com/riscv/riscv-newlib/tree/riscv-newlib-2.5.0/libgloss/riscv
+// see: newlib/libgloss/riscv @ https://github.com/riscv/riscv-newlib/tree/riscv-newlib-2.5.0/libgloss/riscv
 
 #define SYS_exit 93
 #define SYS_exit_group 94
@@ -51,49 +51,44 @@
 #define SYS_dup 23
 
 // custom extensions
-#define SYS_host_error 1        // indicate an error, i.e. this instruction should never be reached so something went wrong during exec.
-#define SYS_host_test_pass 2    // RISC-V test execution successfully completed
-#define SYS_host_test_fail 3    // RISC-V test execution failed
-
-
+#define SYS_host_error \
+	1  // indicate an error, i.e. this instruction should never be reached so something went wrong during exec.
+#define SYS_host_test_pass 2  // RISC-V test execution successfully completed
+#define SYS_host_test_fail 3  // RISC-V test execution failed
 
 struct SyscallHandler {
-	Taint<uint8_t> *mem = 0;       // direct pointer to start of guest memory in host memory
-    uint32_t mem_offset;    // start address of the memory as mapped into the address space
-    uint32_t hp = 0;        // heap pointer
-    bool shall_exit = false;
+	Taint<uint8_t> *mem = 0;  // direct pointer to start of guest memory in host memory
+	uint32_t mem_offset;      // start address of the memory as mapped into the address space
+	uint32_t hp = 0;          // heap pointer
+	bool shall_exit = false;
 
-    // only for memory consumption evaluation
-    uint32_t start_heap = 0;
-    uint32_t max_heap = 0;
+	// only for memory consumption evaluation
+	uint32_t start_heap = 0;
+	uint32_t max_heap = 0;
 
-    uint32_t get_max_heap_memory_consumption() {
-        return max_heap - start_heap;
-    }
+	uint32_t get_max_heap_memory_consumption() { return max_heap - start_heap; }
 
+	void init(Taint<uint8_t> *host_memory_pointer, uint32_t mem_start_address, uint32_t heap_pointer_address) {
+		mem = host_memory_pointer;
+		mem_offset = mem_start_address;
+		hp = heap_pointer_address;
 
-    void init(Taint<uint8_t> *host_memory_pointer, uint32_t mem_start_address, uint32_t heap_pointer_address) {
-        mem = host_memory_pointer;
-        mem_offset = mem_start_address;
-        hp = heap_pointer_address;
+		start_heap = hp;
+		max_heap = hp;
+	}
 
-        start_heap = hp;
-        max_heap = hp;
-    }
+	Taint<uint8_t> *guest_to_host_pointer(const void *addr) {
+		assert(mem != nullptr);
+		return mem + (reinterpret_cast<const uint64_t>(addr) - mem_offset);
+	}
 
-    Taint<uint8_t> *guest_to_host_pointer(const void* addr) {
-        assert (mem != nullptr);
-        return mem + (reinterpret_cast<const uint64_t>(addr) - mem_offset);
-    }
+	typedef unsigned long int ulong;
 
-    typedef unsigned long int ulong;
-
-    /*
-     * Syscalls are implemented to work directly on guest memory (represented in host as byte array).
-     * Note: the data structures on the host system might not be binary compatible with those on the guest system.
-     */
-    int execute_syscall(ulong n, ulong _a0, ulong _a1, ulong _a2, ulong _a3);
+	/*
+	 * Syscalls are implemented to work directly on guest memory (represented in host as byte array).
+	 * Note: the data structures on the host system might not be binary compatible with those on the guest system.
+	 */
+	int execute_syscall(ulong n, ulong _a0, ulong _a1, ulong _a2, ulong _a3);
 };
 
-
-#endif //RISCV_ISA_SYSCALL_H
+#endif  // RISCV_ISA_SYSCALL_H

@@ -1,15 +1,15 @@
-#include <string.h>
 #include <inttypes.h>
+#include <string.h>
 #include <iostream>
 
-//From flash.h
+// From flash.h
 static constexpr unsigned int BLOCKSIZE = 512;
 static constexpr unsigned int FLASH_ADDR_REG = 0;
 static constexpr unsigned int FLASH_SIZE_REG = sizeof(uint64_t);
 static constexpr unsigned int DATA_ADDR = FLASH_SIZE_REG + sizeof(uint64_t);
-//static constexpr unsigned int ADDR_SPACE = DATA_ADDR + BLOCKSIZE;
+// static constexpr unsigned int ADDR_SPACE = DATA_ADDR + BLOCKSIZE;
 
-static uint8_t* volatile const FLASH_CONTROLLER = (uint8_t* volatile const)(0x71000000);
+static uint8_t* volatile const FLASH_CONTROLLER = (uint8_t * volatile const)(0x71000000);
 
 using namespace std;
 
@@ -33,16 +33,13 @@ int main() {
 	cout << " Counter after: " << counter << endl;
 }
 
-void setTargetBlock(uint64_t addr)
-{
+void setTargetBlock(uint64_t addr) {
 	uint64_t targetBlock = addr % BLOCKSIZE;
 	memcpy(FLASH_CONTROLLER + FLASH_ADDR_REG, &targetBlock, sizeof(uint64_t));
 }
 
-void readFlash(char* dst, uint64_t addr, size_t len)
-{
-	if(addr / BLOCKSIZE != (addr + len) / BLOCKSIZE)
-	{
+void readFlash(char* dst, uint64_t addr, size_t len) {
+	if (addr / BLOCKSIZE != (addr + len) / BLOCKSIZE) {
 		cerr << "Unaligned read, currently not supported" << endl;
 		return;
 	}
@@ -50,10 +47,8 @@ void readFlash(char* dst, uint64_t addr, size_t len)
 	memcpy(dst, FLASH_CONTROLLER + DATA_ADDR, len);
 }
 
-void writeFlash(const char* src, uint64_t addr, size_t len)
-{
-	if(addr / BLOCKSIZE != (addr + len) / BLOCKSIZE)
-	{
+void writeFlash(const char* src, uint64_t addr, size_t len) {
+	if (addr / BLOCKSIZE != (addr + len) / BLOCKSIZE) {
 		cerr << "Unaligned read, currently not supported" << endl;
 		return;
 	}
