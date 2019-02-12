@@ -1,8 +1,9 @@
-#ifndef RISCV_ISA_CLINT_H
-#define RISCV_ISA_CLINT_H
+#pragma once
+
+#include "irq_if.h"
+#include "taint.hpp"
 
 #include <unordered_map>
-
 #include <tlm_utils/simple_target_socket.h>
 #include <systemc>
 
@@ -120,5 +121,3 @@ struct CLINT : public clint_if, public sc_core::sc_module {
 		}
 	}
 };
-
-#endif  // RISCV_ISA_CLINT_H

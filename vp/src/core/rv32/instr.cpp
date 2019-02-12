@@ -179,8 +179,9 @@ Opcode::Type Opcode::getType(Opcode::Mapping mapping) {
 			return Type::U;
 		case JAL:
 			return Type::J;
+		default:
+			return Type::UNKNOWN;
 	}
-	return Type::UNKNOWN;
 }
 
 unsigned C_ADDI4SPN_NZUIMM(uint32_t n) {
