@@ -40,6 +40,10 @@ struct Options {
 	addr_t term_end_addr = term_start_addr + 16;
 	addr_t secterm_start_addr = 0x21000000;
 	addr_t secterm_end_addr = secterm_start_addr + 16;
+	addr_t secmem_start_addr = 0x22000000;
+	addr_t secmem_size       = 1024;
+	addr_t secmem_end_addr   = secmem_start_addr + secmem_size;
+	uint8_t secmem_taint     = MergeStrategy::highest;				//highest + zero
 	addr_t plic_start_addr = 0x40000000;
 	addr_t plic_end_addr = 0x41000000;
 	addr_t sensor_start_addr = 0x50000000;
@@ -121,9 +125,14 @@ int sc_main(int argc, char **argv) {
 	ISS core;
 	TaintedMemory mem("TAINTEDMemory", opt.mem_size);
 	SimpleTerminal term("SimpleTerminal");
-	SecureTerminal secterm("SecureTerminal", 1);
+	SecureTerminal secterm("SecureTerminal", opt.secmem_taint);
+	TaintedMemory secmem("secureMemory", opt.secmem_size, opt.secmem_taint);
+	for(unsigned i = 0; i < opt.secmem_size; i++)
+	{
+		secmem.data[i] = Taint<uint8_t>(i & 0xFF, opt.secmem_taint);
+	}
 	ELFLoader loader(opt.input_program.c_str());
-	SimpleBus<2, 8> bus("SimpleBus");
+	SimpleBus<2, 9> bus("SimpleBus");
 	CombinedMemoryInterface iss_mem_if("MemoryInterface", core.quantum_keeper);
 	SyscallHandler sys;
 	PLIC plic("PLIC");
@@ -150,6 +159,7 @@ int sc_main(int argc, char **argv) {
 	bus.ports[5] = new PortMapping(opt.clint_start_addr, opt.clint_end_addr);
 	bus.ports[6] = new PortMapping(opt.dma_start_addr, opt.dma_end_addr);
 	bus.ports[7] = new PortMapping(opt.sensor2_start_addr, opt.sensor2_end_addr);
+	bus.ports[8] = new PortMapping(opt.secmem_start_addr, opt.secmem_end_addr);
 
 	loader.load_executable_image(mem.data, mem.size, opt.mem_start_addr);
 	core.init(instr_mem_if, data_mem_if, &clint, &sys, loader.get_entrypoint(),
@@ -167,6 +177,7 @@ int sc_main(int argc, char **argv) {
 	bus.isocks[5].bind(clint.tsock);
 	bus.isocks[6].bind(dma.tsock);
 	bus.isocks[7].bind(sensor2.tsock);
+	bus.isocks[8].bind(secmem.tsock);
 
 	// connect interrupt signals/communication
 	plic.target_hart = &core;

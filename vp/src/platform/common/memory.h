@@ -14,12 +14,24 @@
 struct TaintedMemory : public sc_core::sc_module {
 	tlm_utils::simple_target_socket<TaintedMemory> tsock;
 
-	Taint<uint8_t> *data;
 	uint32_t size;
+	Taintlevel taint;
+	Taint<uint8_t> *data;
 
-	TaintedMemory(sc_core::sc_module_name, uint32_t size) : data(new Taint<uint8_t>[size]()), size(size) {
+	TaintedMemory(sc_core::sc_module_name, uint32_t size) :
+	              data(new Taint<uint8_t>[size]()), size(size), taint(0){
 		tsock.register_b_transport(this, &TaintedMemory::transport);
 	}
+
+	TaintedMemory(sc_core::sc_module_name, uint32_t size, Taintlevel taint) :
+	              data(new Taint<uint8_t>[size]()), size(size), taint(taint){
+		for(unsigned i = 0; i < size; i++)
+		{
+			data[i].setTaintId(taint);
+		}
+		tsock.register_b_transport(this, &TaintedMemory::transport);
+	}
+
 
 	~TaintedMemory() { delete[] data; }
 
@@ -34,6 +46,13 @@ struct TaintedMemory : public sc_core::sc_module {
 	void write_data(unsigned addr, const Taint<uint8_t> *src, unsigned num_bytes) {
 		assert(addr + num_bytes <= size);
 		memcpy(data + addr, src, num_bytes * sizeof(Taint<uint8_t>));
+		if(taint != 0)
+		{
+			for(unsigned i = 0; i < num_bytes; i++)
+			{
+				data[addr+i].setTaintId(taint);
+			}
+		}
 	}
 
 	void read_data(unsigned addr, Taint<uint8_t> *dst, unsigned num_bytes) {
@@ -47,7 +66,7 @@ struct TaintedMemory : public sc_core::sc_module {
 		Taint<uint8_t> *ptr = reinterpret_cast<Taint<uint8_t> *>(trans.get_data_ptr());
 		auto len = trans.get_data_length();
 
-		assert((addr >= 0) && (addr < size));
+		assert(addr < size);
 
 		if (cmd == tlm::TLM_WRITE_COMMAND) {
 			write_data(addr, ptr, len);

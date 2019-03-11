@@ -26,7 +26,7 @@ uint8_t getTaint(uint8_t* const word)
 	return taintval;
 }
 
-void ultraSecureCrypt(uint8_t* plain, uint8_t* key, uint8_t* cipher, uint16_t size)
+void hashFunction(uint8_t* plain, uint8_t* key, uint8_t* cipher, uint16_t size)
 {
 	for(uint16_t i = 0; i < size; i++)
 	{
@@ -69,14 +69,9 @@ uint8_t ciphertext[blksz];
 uint8_t plaintext[blksz];
 uint8_t key[blksz];
 
-uint8_t mergeMask = 0b1100000;
-
-enum MergeStrategy
-{
+enum MergeStrategy {
 	forbidden = 0b00000000,
-	highest   = 0b01000000,
-	merge	  = 0b10000000,
-	error	  = 0b11000000
+	highest = 0b10000000,
 };
 
 int main()
@@ -88,15 +83,15 @@ int main()
 	strcpy(key,       "MeineOmaFaehrtImHuenerstallMotor");
 	strcpy(plaintext, "Dies ist ein sehr geheimer Text.");
 
-	setTaint(plaintext, merge | 1, blksz);
-	setTaint(key      , merge | 2, blksz);
+	setTaint(plaintext, highest | 1, blksz);
+	setTaint(key      , highest | 2, blksz);
 
 	printf("Before crypt:\n");
 	printf("Plaintext has taint: %u\n", getTaint(plaintext));
 	printf("Key       has taint: %u\n", getTaint(key));
 	printf("Cipher    has taint: %u\n", getTaint(ciphertext));
 
-	ultraSecureCrypt(plaintext, key, ciphertext, blksz);
+	hashFunction(plaintext, key, ciphertext, blksz);
 
 	//this would fail
 	//printf("%10s\n", plaintext);
