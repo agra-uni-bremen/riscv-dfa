@@ -23,11 +23,13 @@ struct TaintingException : public std::exception {
 };
 
 typedef uint8_t Taintlevel;
-static constexpr Taintlevel mergeMask = 0b10000000;
+static constexpr Taintlevel mergeMask = 0b11000000;
 
 enum MergeStrategy : Taintlevel {
 	forbidden = 0b00000000,
-	highest = 0b10000000,
+	lowest    = 0b01000000,
+	highest   = 0b10000000,
+	error     = 0b11000000
 };
 
 template <typename T>
@@ -37,17 +39,10 @@ class Taint {
 
    public:
 	void setTaintId(Taintlevel taintID) {
-		// if forbidden, this fails. If highest, the highest ID may only be lower or equal
-		uint8_t max = mergeTaintingValues(getTaintId(), taintID);
-		if (taintID < max) {
-			if (taintID == 0) {
-				throw(TaintingException("Invalid Demotion from " + std::to_string(getTaintId())));
-			} else {
-				throw(TaintingException("Changing taint ID from " + std::to_string(getTaintId()) + " to " +
-				                        std::to_string(taintID)));
-			}
+		if (!allowed(taintID, getTaintId())) {
+			throw(TaintingException("Invalid Demotion from " + std::to_string(getTaintId()) + " to " + std::to_string(taintID)));
 		}
-		memset(id, taintID, sizeof(T));
+		memset(id, mergeTaintingValues(getTaintId(), taintID), sizeof(T));
 	}
 
 	Taintlevel getTaintId() const {
@@ -111,6 +106,31 @@ class Taint {
 		std::swap(lhs.id, rhs.id);
 	}
 
+	static bool allowed(const Taintlevel to, const Taintlevel from)
+	{
+		if (to == from) {
+			return true;
+		} else if (from == 0) {	//Well, technically...
+			return true;
+		} else{
+			MergeStrategy tom = static_cast<MergeStrategy>(to & mergeMask);
+			MergeStrategy frm = static_cast<MergeStrategy>(from & mergeMask);
+			if (tom != frm) {
+				return false;
+			}
+			switch (frm) {
+				case MergeStrategy::forbidden:
+					return false;
+				case MergeStrategy::lowest:
+					return from > to;
+				case MergeStrategy::highest:
+					return from < to;
+				default:
+					throw(TaintingException("invalid merging policy"));
+			}
+		}
+	}
+
 	static Taintlevel mergeTaintingValues(const Taintlevel a, const Taintlevel b) {
 		if (a == b) {
 			return a;
@@ -130,6 +150,8 @@ class Taint {
 					case MergeStrategy::forbidden:
 						throw(TaintingException("merging forbidden by policy"));
 						return 0;
+					case MergeStrategy::lowest:
+						return a < b ? a : b;
 					case MergeStrategy::highest:
 						return a > b ? a : b;
 					default:
@@ -254,11 +276,9 @@ class Taint {
 	}
 
 	T demote(Taintlevel level) const {
-		// if forbidden, this fails. If highest, the highest ID may only be lower or equal
-		uint8_t max = mergeTaintingValues(getTaintId(), level);
-		if (level < max) {
-			throw TaintingException("Invalid demotion of ID " + std::to_string(getTaintId()) +
-			                        " (allowed: " + std::to_string(level) + ")");
+		if (!allowed(level, getTaintId())) {
+			throw TaintingException("Invalid demotion of from " + std::to_string(getTaintId()) +
+			                        " to " + std::to_string(level));
 		}
 		return value;
 	}

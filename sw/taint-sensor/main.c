@@ -11,6 +11,13 @@ static volatile uint32_t * const SENSOR_SCALER_REG_ADDR = (uint32_t * const)0x50
 static volatile uint32_t * const SENSOR_FILTER_REG_ADDR = (uint32_t * const)0x50000084;
 static volatile uint32_t * const SENSOR_TAINT_REG_ADDR  = (uint32_t * const)0x50000088;
 
+enum MergeStrategy {
+	forbidden = 0b00000000,
+	lowest    = 0b01000000,
+	highest   = 0b10000000,
+	error     = 0b11000000
+};
+
 void setTaint(uint8_t* word, uint8_t const taint, uint16_t const size)
 {
 	for(uint16_t i = 0; i < size; i++)
@@ -70,7 +77,7 @@ int main() {
 	
 	*SENSOR_SCALER_REG_ADDR = 5;
 	*SENSOR_FILTER_REG_ADDR = 2;
-	*SENSOR_TAINT_REG_ADDR = 1;
+	*SENSOR_TAINT_REG_ADDR = highest;
 
 	//this would fail
 	//dump_sensor_data(TERMINAL_ADDR);
