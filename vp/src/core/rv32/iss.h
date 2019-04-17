@@ -131,7 +131,7 @@ struct RegFile {
 struct instr_memory_interface {
 	virtual ~instr_memory_interface() {}
 
-	virtual int32_t load_instr(uint32_t pc) = 0;
+	virtual Taint<int32_t> load_instr(uint32_t pc) = 0;
 };
 
 struct data_memory_interface {
@@ -164,13 +164,15 @@ struct InstrMemoryProxy : public instr_memory_interface {
 	InstrMemoryProxy(direct_memory_interface &dmi, tlm_utils::tlm_quantumkeeper &keeper)
 	    : dmi(dmi), quantum_keeper(keeper) {}
 
-	virtual int32_t load_instr(uint32_t pc) override {
+	virtual Taint<int32_t> load_instr(uint32_t pc) override {
 		assert(pc >= dmi.offset);
 		assert((pc - dmi.offset) < dmi.size);
 
 		quantum_keeper.inc(access_delay);
 
-		return (dmi.mem + (pc - dmi.offset))->as<int32_t>();
+		Taint<int32_t> ret((dmi.mem + (pc - dmi.offset)));
+
+		return ret;
 	}
 };
 
@@ -288,7 +290,7 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
 		_do_transaction(tlm::TLM_WRITE_COMMAND, addr, arr, sizeof(T));
 	}
 
-	int32_t load_instr(addr_t addr) { return _load_data<int32_t>(addr); }
+	Taint<int32_t> load_instr(addr_t addr) { return _load_data<int32_t>(addr); }
 
 	Taint<int32_t> load_word(addr_t addr) { return _load_data<int32_t>(addr); }
 	Taint<int32_t> load_half(addr_t addr) { return _load_data<int16_t>(addr); }

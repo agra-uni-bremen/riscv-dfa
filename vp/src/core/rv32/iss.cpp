@@ -53,7 +53,7 @@ ISS::ISS() : sc_module(sc_core::sc_module_name("ISS")) {
 Opcode::Mapping ISS::exec_step() {
 	DEBUG(std::cout << "pc: " << std::hex << pc << " sp: " << regs.read(regs.sp) << "   ");
 
-	uint32_t mem_word = instr_mem->load_instr(pc);
+	uint32_t mem_word = instr_mem->load_instr(pc).require(MergeStrategy::lowest + 1);
 	Instruction instr(mem_word);
 	Opcode::Mapping op;
 	if (instr.is_compressed()) {

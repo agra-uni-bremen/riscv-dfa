@@ -104,7 +104,7 @@ struct ELFLoader {
 				// NOTE: if memsz is larger than filesz, the additional bytes are zero initialized (auto. done for
 				// memory) memcpy(dst + p->p_vaddr - offset, elf.data() + p->p_offset, p->p_filesz);
 				for (unsigned i = 0; i < p->p_filesz; i++) {
-					dst[(p->p_vaddr - offset) + i] = elf.data()[p->p_offset + i];
+					dst[(p->p_vaddr - offset) + i] = Taint<uint8_t>(elf.data()[p->p_offset + i], MergeStrategy::lowest + 2);
 				}
 			} else {
 				assert((p->p_paddr >= offset) && (p->p_paddr + p->p_memsz < offset + size));
@@ -112,7 +112,7 @@ struct ELFLoader {
 				// NOTE: if memsz is larger than filesz, the additional bytes are zero initialized (auto. done for
 				// memory) memcpy(dst + p->p_paddr - offset, elf.data() + p->p_offset, p->p_filesz);
 				for (unsigned i = 0; i < p->p_filesz; i++) {
-					dst[(p->p_paddr - offset) + i] = elf.data()[p->p_offset + i];
+					dst[(p->p_paddr - offset) + i] = Taint<uint8_t>(elf.data()[p->p_offset + i], MergeStrategy::lowest + 2);
 				}
 			}
 		}

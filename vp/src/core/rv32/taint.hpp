@@ -11,6 +11,7 @@
 #include <cstring>
 #include <exception>
 #include <iostream>
+#include <sstream>
 
 //#define DEBUG(x) x;
 #define DEBUG(x) ;
@@ -32,6 +33,27 @@ enum MergeStrategy : Taintlevel {
 	error     = 0b11000000
 };
 
+inline std::string to_string(const Taintlevel& level) {
+	std::ostringstream ss;
+	switch(level & mergeMask)
+	{
+	case MergeStrategy::forbidden:
+		ss << "forbidden ";
+		break;
+	case MergeStrategy::lowest:
+		ss << "lowest: ";
+		break;
+	case MergeStrategy::highest:
+		ss << "highest: ";
+		break;
+	default:
+		ss << "error ";
+		break;
+	}
+	ss << (level & (~mergeMask));
+	return ss.str();
+}
+
 template <typename T>
 class Taint {
 	T value;
@@ -40,7 +62,7 @@ class Taint {
    public:
 	void setTaintId(Taintlevel taintID) {
 		if (!allowed(taintID, getTaintId())) {
-			throw(TaintingException("Invalid Demotion from " + std::to_string(getTaintId()) + " to " + std::to_string(taintID)));
+			throw(TaintingException("Invalid setTaint from " + to_string(getTaintId()) + " to " + to_string(taintID)));
 		}
 		memset(id, mergeTaintingValues(getTaintId(), taintID), sizeof(T));
 	}
@@ -96,7 +118,7 @@ class Taint {
 				}
 			}
 			// magic that relies that value is first byte in ar[i]
-			reinterpret_cast<uint8_t*>(&value)[i] = ar[i].demote(taint);
+			reinterpret_cast<uint8_t*>(&value)[i] = ar[i].require(taint);
 		}
 		memset(id, taint, sizeof(T));
 	}
@@ -110,7 +132,7 @@ class Taint {
 	{
 		if (to == from) {
 			return true;
-		} else if (from == 0) {	//Well, technically...
+		} else if (from == 0 || to == 0) {	//Well, technically...
 			return true;
 		} else{
 			MergeStrategy tom = static_cast<MergeStrategy>(to & mergeMask);
@@ -164,10 +186,10 @@ class Taint {
 	Taint<T>& operator=(const Taint<T>& other) {
 		// DEBUG(std::cout << "Move operator = " << int(other.value) << " id (" << int(other.getTaintId()) << ")" <<
 		// std::endl);
-		if (id[0] != 0 && other.id[0] != id[0]) {
-			DEBUG(std::cout << "Overwriting tainted value " << Taintlevel(id[0]) << " with " << Taintlevel(other.id[0])
-			                << std::endl);
-		}
+		//if(!allowed(getTaintId(), other.getTaintId()))
+		//{
+		//	throw(TaintingException("Forbidden flow from " + to_string(other.getTaintId()) + " to " + to_string(getTaintId())));
+		//}
 		Taint<T> temp(other);
 		swap(*this, temp);
 
@@ -275,15 +297,15 @@ class Taint {
 		return ret;
 	}
 
-	T demote(Taintlevel level) const {
+	T require(Taintlevel level) const {
 		if (!allowed(level, getTaintId())) {
-			throw TaintingException("Invalid demotion of from " + std::to_string(getTaintId()) +
-			                        " to " + std::to_string(level));
+			throw TaintingException("Unsatisfiable require from " + to_string(getTaintId()) +
+			                        " to " + to_string(level));
 		}
 		return value;
 	}
 
-	operator T() const { return demote(0); }
+	operator T() const { return require(0); }
 
 	// debugging only
 	T peek() {

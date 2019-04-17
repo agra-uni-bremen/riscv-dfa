@@ -35,7 +35,7 @@ struct SecureTerminal : public sc_core::sc_module {
 		sc_assert(trans.get_data_length() == 1);
 
 		// this may throw if tainted differently
-		char c = reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr())->demote(level);
+		char c = reinterpret_cast<Taint<uint8_t>*>(trans.get_data_ptr())->require(level);
 
 		std::cout << c;
 	}
