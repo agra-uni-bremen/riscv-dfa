@@ -66,5 +66,7 @@ int main() {
 	}
 	assert(threw);
 
+	t = i;
+
 	exit(EXIT_SUCCESS);
 }

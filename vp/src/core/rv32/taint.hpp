@@ -139,10 +139,13 @@ class Taint {
 				return false;
 			switch (frm) {
 				case MergeStrategy::lowest:
-					return from > to;	//this includes to == none == 0
+					//this includes to = none = 0 < from
+					return tom == MergeStrategy::highest ? true : from > to;
 				case MergeStrategy::highest:	//high/none to lowest forbidden
 				case MergeStrategy::none:
 					return tom == MergeStrategy::lowest ? false : from < to;
+				default:
+					break;
 			}
 		}
 		return false;

@@ -102,6 +102,9 @@ int main()
 	printf("Key       has taint: %u\n", getTaint(key));
 	printf("Cipher    has taint: %u\n", getTaint(ciphertext));
 
+
+	return 0;
+	//todo: do this in downgrader
 	setTaint(ciphertext, 0, blksz);
 
 	//this would fail
