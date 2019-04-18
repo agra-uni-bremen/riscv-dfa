@@ -135,18 +135,14 @@ class Taint {
 		} else{
 			MergeStrategy tom = static_cast<MergeStrategy>(to & mergeMask);
 			MergeStrategy frm = static_cast<MergeStrategy>(from & mergeMask);
-			if (tom != frm) {
-				//lowest to none and highest is allowed
-				return frm == MergeStrategy::lowest && tom != MergeStrategy::forbidden;
-			}
+			if(frm == MergeStrategy::forbidden || tom == MergeStrategy::forbidden)
+				return false;
 			switch (frm) {
-				case MergeStrategy::forbidden:
-					return false;
 				case MergeStrategy::lowest:
-					return from > to;
-				case MergeStrategy::highest:
+					return from > to;	//this includes to == none == 0
+				case MergeStrategy::highest:	//high/none to lowest forbidden
 				case MergeStrategy::none:
-					return from < to;
+					return tom == MergeStrategy::lowest ? false : from < to;
 			}
 		}
 		return false;

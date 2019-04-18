@@ -25,7 +25,7 @@ int main() {
 
 	t = 10;
 
-	t = Taint<uint8_t>(0, MergeStrategy::highest + 2);
+	t.setTaintId(MergeStrategy::highest + 2);
 	Taint<uint32_t> t2 = t;
 
 	bool threw = false;
