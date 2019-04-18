@@ -136,8 +136,8 @@ class Taint {
 			MergeStrategy tom = static_cast<MergeStrategy>(to & mergeMask);
 			MergeStrategy frm = static_cast<MergeStrategy>(from & mergeMask);
 			if (tom != frm) {
-				//Special case: lowest to highest is allowed
-				return frm == MergeStrategy::lowest && tom == MergeStrategy::highest;
+				//lowest to none and highest is allowed
+				return frm == MergeStrategy::lowest && tom != MergeStrategy::forbidden;
 			}
 			switch (frm) {
 				case MergeStrategy::forbidden:
@@ -145,49 +145,69 @@ class Taint {
 				case MergeStrategy::lowest:
 					return from > to;
 				case MergeStrategy::highest:
+				case MergeStrategy::none:
 					return from < to;
-				default:
-					throw(TaintingException("invalid merging policy"));
 			}
 		}
+		return false;
 	}
 
 	static Taintlevel mergeTaintingValues(const Taintlevel a, const Taintlevel b) {
 		if (a == b) {
 			return a;
 		} else {
-			if (a > 0 && b == 0) {	// 0 equals none
-				return a;
-			} else if (b > 0 && a == 0) {
-				return b;
-			} else {
-				MergeStrategy am = static_cast<MergeStrategy>(a & mergeMask);
-				MergeStrategy bm = static_cast<MergeStrategy>(b & mergeMask);
-				if (am != bm) {
-					if( (am == MergeStrategy::lowest || bm == MergeStrategy::lowest) &&
-					    (am == MergeStrategy::highest|| bm == MergeStrategy::highest))
-					//Special case: lowest + highest = highest
-					{
-						return am == MergeStrategy::highest ? a : b;
-					}else
-					{
-						throw(TaintingException("Invalid combination of merging policies " + to_string(a) + " and " + to_string(b)));
-					}
+			MergeStrategy am = static_cast<MergeStrategy>(a & mergeMask);
+			MergeStrategy bm = static_cast<MergeStrategy>(b & mergeMask);
+
+			if(am == MergeStrategy::forbidden || bm == MergeStrategy::forbidden)
+			{
+				throw(TaintingException("merging forbidden by policy"));
+				return 0;
+			}
+			switch (am) {
+			case MergeStrategy::lowest:
+				switch(bm)
+				{
+				case MergeStrategy::lowest:	//low: low
+					return a < b ? a : b;
+				case MergeStrategy::highest: //lowest and highest, choose highest
+					return b;
+				case MergeStrategy::none:	 //lowest and none: demote to none
 					return 0;
+				default:
+					break;
 				}
-				switch (am) {
-					case MergeStrategy::forbidden:
-						throw(TaintingException("merging forbidden by policy"));
-						return 0;
-					case MergeStrategy::lowest:
-						return a < b ? a : b;
-					case MergeStrategy::highest:
-						return a > b ? a : b;
-					default:
-						throw(TaintingException("invalid merging policy"));
+				break;
+			case MergeStrategy::highest:
+				switch(bm)
+				{
+				case MergeStrategy::lowest:	//lowest and highest, choose highest
+				case MergeStrategy::none:	//highest and none: promote to highest
+					return a;
+				case MergeStrategy::highest: //highest: highest
+					return a > b ? a : b;
+				default:
+					break;
 				}
+				break;
+			case MergeStrategy::none:
+				switch(bm)
+				{
+				case MergeStrategy::none:	//none and none: why are you even here?
+				case MergeStrategy::lowest:	//lowest and none: demote to none
+					return 0;
+				case MergeStrategy::highest: //highest and none: promote to highest
+					return b;
+				default:
+					break;
+				}
+				break;
+			default:
+				break;
 			}
 		}
+		throw(TaintingException("invalid merging policy"));
+		return 0;
 	}
 
 	Taint<T>& operator=(const Taint<T>& other) {

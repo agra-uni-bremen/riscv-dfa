@@ -46,7 +46,7 @@ int main() {
 	}
 	assert(threw);
 
-	c = t2.require(MergeStrategy::highest + 3);	//flow from 2 to 3 is allowed
+	c = t2.require(MergeStrategy::highest + 3);		//flow from 2 to 3 is allowed
 
 
 	Taint<uint8_t> i(MergeStrategy::lowest + 2);

@@ -15,19 +15,19 @@ struct TaintedMemory : public sc_core::sc_module {
 	tlm_utils::simple_target_socket<TaintedMemory> tsock;
 
 	uint32_t size;
-	Taintlevel taint;
 	Taint<uint8_t> *data;
+	Taintlevel taint;
 
 	TaintedMemory(sc_core::sc_module_name, uint32_t size) :
-	              data(new Taint<uint8_t>[size]()), size(size), taint(0){
+		          size(size), data(new Taint<uint8_t>[size]()), taint(0){
 		tsock.register_b_transport(this, &TaintedMemory::transport);
 	}
 
 	TaintedMemory(sc_core::sc_module_name, uint32_t size, Taintlevel taint) :
-	              data(new Taint<uint8_t>[size]()), size(size), taint(taint){
+		          size(size), data(new Taint<uint8_t>[size]()), taint(taint){
 		for(unsigned i = 0; i < size; i++)
 		{
-			data[i].setTaintId(taint);
+			data[i] = Taint<uint8_t>(0, taint);
 		}
 		tsock.register_b_transport(this, &TaintedMemory::transport);
 	}
@@ -45,19 +45,13 @@ struct TaintedMemory : public sc_core::sc_module {
 
 	void write_data(unsigned addr, const Taint<uint8_t> *src, unsigned num_bytes) {
 		assert(addr + num_bytes <= size);
-		memcpy(data + addr, src, num_bytes * sizeof(Taint<uint8_t>));
-		if(taint != 0)
-		{
-			for(unsigned i = 0; i < num_bytes; i++)
-			{
-				data[addr+i].setTaintId(taint);
-			}
-		}
+		//todo: This will allow lower-sec infos. Is this OK?
+		memcpy((void*)(data + addr), src, num_bytes * sizeof(Taint<uint8_t>));
 	}
 
 	void read_data(unsigned addr, Taint<uint8_t> *dst, unsigned num_bytes) {
 		assert(addr + num_bytes <= size);
-		memcpy(dst, data + addr, num_bytes * sizeof(Taint<uint8_t>));
+		memcpy((void*)dst, data + addr, num_bytes * sizeof(Taint<uint8_t>));
 	}
 
 	void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
