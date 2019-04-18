@@ -138,7 +138,8 @@ class Taint {
 			MergeStrategy tom = static_cast<MergeStrategy>(to & mergeMask);
 			MergeStrategy frm = static_cast<MergeStrategy>(from & mergeMask);
 			if (tom != frm) {
-				return false;
+				//Special case: lowest to highest is allowed
+				return frm == MergeStrategy::lowest && tom == MergeStrategy::highest;
 			}
 			switch (frm) {
 				case MergeStrategy::forbidden:
@@ -165,7 +166,15 @@ class Taint {
 				MergeStrategy am = static_cast<MergeStrategy>(a & mergeMask);
 				MergeStrategy bm = static_cast<MergeStrategy>(b & mergeMask);
 				if (am != bm) {
-					throw(TaintingException("combination of different merging policies"));
+					if( (am == MergeStrategy::lowest || bm == MergeStrategy::lowest) &&
+					    (am == MergeStrategy::highest|| bm == MergeStrategy::highest))
+					//Special case: lowest + highest = highest
+					{
+						return am == MergeStrategy::highest ? a : b;
+					}else
+					{
+						throw(TaintingException("Invalid combination of merging policies " << to_string(a) << " and " << to_string(b)));
+					}
 					return 0;
 				}
 				switch (am) {
