@@ -25,28 +25,46 @@ int main() {
 
 	t = 10;
 
-	t.setTaintId(1);
+	t = Taint<uint8_t>(0, MergeStrategy::highest + 2);
 	Taint<uint32_t> t2 = t;
 
 	bool threw = false;
 	try {
-		c = t2;  // should throw
+		c = t2;  // flow to zero
 	} catch (TaintingException& ex) {
-		cerr << "Correct error: " << ex.what() << endl;
+		cerr << "Correct throw: " << ex.what() << endl;
 		threw = true;
 	}
 	assert(threw);
 
 	threw = false;
 	try {
-		c = t2.demote(2);  // should throw
+		c = t2.require(MergeStrategy::highest + 1);  // flow to low
 	} catch (TaintingException& ex) {
-		cerr << "Correct error: " << ex.what() << endl;
+		cerr << "Correct throw: " << ex.what() << endl;
 		threw = true;
 	}
 	assert(threw);
 
-	c = t2.demote(1);
+	c = t2.require(MergeStrategy::highest + 3);	//flow from 2 to 3 is allowed
+
+
+	Taint<uint8_t> i(MergeStrategy::lowest + 2);
+	c = i;		//demotion to 0
+
+	{
+	Taint<uint8_t> ic = i;	//implicit demotion to 0
+	assert(ic.getTaintId() == 0);	//test of merge function
+	}
+
+	threw = false;
+	try {
+		c = i.require(MergeStrategy::lowest + 3);  // flow to high
+	} catch (TaintingException& ex) {
+		cerr << "Correct throw: " << ex.what() << endl;
+		threw = true;
+	}
+	assert(threw);
 
 	exit(EXIT_SUCCESS);
 }
