@@ -29,6 +29,7 @@ struct Options {
 
 	std::string input_program;
 	std::string test_signature;
+	int32_t parameter = 0;
 
 	addr_t mem_size = 1024 * 1024 * 32;  // 32 MB ram, to place it before the CLINT and run the base examples (assume
 	                                     // memory start at zero) without modifications
@@ -87,8 +88,9 @@ Options parse_command_line_arguments(int argc, char **argv) {
 		    "use-data-dmi", po::bool_switch(&opt.use_data_dmi), "use dmi to execute load/store operations")(
 		    "use-dmi", po::bool_switch(), "use instr and data dmi")(
 		    "input-file", po::value<std::string>(&opt.input_program)->required(), "input file to use for execution")(
-		    "signature", po::value<std::string>(&opt.test_signature)->default_value(""),
-		    "output filename for the test execution signature");
+		    "signature", po::value<std::string>(&opt.test_signature)->default_value(""), "output filename for the test execution signature")(
+		    "parameter", po::value<int32_t>(&opt.parameter)->default_value(0), "parameter appearing at 0x1FFFFFC"
+		    );
 
 		po::positional_options_description pos;
 		pos.add("input-file", 1);
@@ -186,6 +188,10 @@ int sc_main(int argc, char **argv) {
 	dma.plic = &plic;
 	timer.plic = &plic;
 	sensor2.plic = &plic;
+
+	for(unsigned i = 0; i < sizeof(int32_t); i++){
+		mem.data[0x1FFFFFC + i] = reinterpret_cast<uint8_t*>(&opt.parameter)[i];
+	}
 
 	if (opt.use_debug_runner) {
 		debug_memory_mapping dmm({mem.data, opt.mem_start_addr, mem.size});
