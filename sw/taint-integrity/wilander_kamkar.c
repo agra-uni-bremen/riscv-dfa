@@ -456,9 +456,9 @@ uint8_t getTaint(uint8_t* const word)
 
 
 int main (void) {
-  int choice;
-
-  setTaint(shellcode, 0, 10);
+  printf("Parameter: %d\n", *(uint32_t*)(0x1FFFFFC));
+  int choice = *(uint32_t*)(0x1FFFFFC);
+  setTaint((void*)shellcode, 0, 10);
 
   /* SLD: Commented the usage. It does not fit in PULPino instr. memory. */
   /* if (argc < 2 || atoi(argv[1]) < -4 || atoi(argv[1]) > 14) { */
@@ -499,7 +499,6 @@ int main (void) {
     base_pointer_offset = 4;
     printf("Using base pointer offset = 0 (normal)\n"); }
 
-  choice = atoi(argv[1]);
   /* SLD: Print choice useful for debugging. */
   printf("Attack choice: %d.\n", choice);
 
@@ -553,6 +552,7 @@ int main (void) {
     printf("Attack prevented.\n");
     break;
   default:
+	  printf("No valid attack specified.\n");
     break; }
   return 0;
 }

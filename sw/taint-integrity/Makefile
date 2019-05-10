@@ -13,4 +13,4 @@ sim: all
 	riscv-vp main
 
 test: atts
-	riscv-vp atts
+	riscv-vp --parameter 13 atts
