@@ -1,0 +1,12 @@
+Attack -4 not applicable
+Attack -2 prevented
+Attack 1 prevented
+Attack 2 not applicable
+Attack 3 prevented
+Attack 5 prevented
+Attack 7 prevented
+Attack 8 not applicable
+Attack 9 prevented
+Attack 11 not applicable
+Attack 12 not applicable
+Attack 13 prevented
