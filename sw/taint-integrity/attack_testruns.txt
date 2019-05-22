@@ -1,12 +1,18 @@
-Attack -4 not applicable
-Attack -2 prevented
-Attack 1 prevented
-Attack 2 not applicable
-Attack 3 prevented
-Attack 5 prevented
-Attack 7 prevented
-Attack 8 not applicable
-Attack 9 prevented
-Attack 11 not applicable
-Attack 12 not applicable
-Attack 13 prevented
+1: Attack -4 not applicable
+2: Attack -3 prevented
+3: Attack 1 prevented
+4: Attack 2 not applicable
+5: Attack 3 prevented
+6: Attack 4 prevented
+7: Attack 5 prevented
+8: Attack 6 not applicable
+9: Attack -2 prevented
+10: Attack -1 prevented
+11: Attack 7 prevented
+12: Attack 8 not applicable
+13: Attack 9 prevented
+14: Attack 10 prevented
+15: Attack 11 not applicable
+16: Attack 12 not applicable
+17: Attack 13 prevented
+18: Attack 14 not applicable

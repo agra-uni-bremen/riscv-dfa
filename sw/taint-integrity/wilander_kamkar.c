@@ -622,7 +622,7 @@ uint8_t getTaint(uint8_t* const word)
 int main (void) {
   printf("Parameter: %d\n", *(uint32_t*)(0x1FFFFFC));
   int choice = *(uint32_t*)(0x1FFFFFC);
-  setTaint((void*)shellcode, 0, 10);
+  setTaint((void*)shellcode, 0, 8);
 
   /* SLD: Commented the usage. It does not fit in PULPino instr. memory. */
   /* if (argc < 2 || atoi(argv[1]) < -4 || atoi(argv[1]) > 14) { */

@@ -2,9 +2,12 @@
 import subprocess
 import os
 
-attacks = [-4, -2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+attacks = [-4, -3, 1, 2, 3, 4, 5, 6, -2, -1, 7, 8, 9, 10, 11, 12, 13, 14]
+i = 1
 
 for attack in attacks:
+    print(str(i) + ":", end=" ")
+    i = i + 1
     try:
         #os.system("riscv-vp atts --parameter " + str(attack))
         output = subprocess.check_output("riscv-vp atts --parameter " + str(attack) + " 2> /dev/null", shell=True)
