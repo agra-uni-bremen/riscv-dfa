@@ -13,7 +13,7 @@ for attack in attacks:
         output = subprocess.check_output("riscv-vp atts --parameter " + str(attack) + " 2> /dev/null", shell=True)
         if "ATTACK successful" in str(output):
             print ("Oh no, attack " + str(attack) + " was successful")
-            exit -1
+            exit (-1)
         else:
             print ("Attack " + str(attack) + " not applicable")
     except subprocess.CalledProcessError as e:
