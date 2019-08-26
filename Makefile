@@ -8,7 +8,7 @@ all: vps vp-display
 
 vp/build/Makefile:
 	mkdir vp/build || true
-	cd vp/build && cmake ..
+	cd vp/build && cmake -DCMAKE_BUILD_TYPE=Release ..
 
 env/basic/vp-display/build/Makefile:
 	mkdir env/basic/vp-display/build || true

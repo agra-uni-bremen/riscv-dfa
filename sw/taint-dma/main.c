@@ -49,6 +49,24 @@ uint8_t getTaint(uint8_t* const word)
 int main() {
 	register_interrupt_handler(4, dma_irq_handler);
 	
+
+	uint8_t denom = 3;
+	uint8_t divis = 0;
+	uint8_t ergebnis;
+
+	setTaint(&denom, 1, sizeof(uint8_t));
+	setTaint(&divis, 1, sizeof(uint8_t));
+
+	asm volatile
+	(
+		"div %[e], %[de], %[di]\n\t"
+			: [e] "=r" (ergebnis)
+			: [de] "r" (denom), [di] "r" (divis)
+	);
+
+	printf("ergbnis = %d\n", ergebnis);
+
+
 	uint8_t src[] = "Meine Ohmer faehrt im Huehnerstall motorrard";
 	uint8_t dst[sizeof(src)] = { 0 };
 	
