@@ -298,9 +298,9 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
 	Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<uint16_t>(addr); }
 	Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<uint8_t>(addr); }
 
-	void store_word(addr_t addr, Taint<uint32_t> value) { _store_data(addr, value); }
-	void store_half(addr_t addr, Taint<uint16_t> value) { _store_data(addr, value); }
-	void store_byte(addr_t addr, Taint<uint8_t> value) { _store_data(addr, value); }
+	void store_word(addr_t addr, Taint<uint32_t> value) { _store_data<uint32_t>(addr, value); }
+	void store_half(addr_t addr, Taint<uint16_t> value) { _store_data<uint16_t>(addr, value); }
+	void store_byte(addr_t addr, Taint<uint8_t> value) { _store_data<uint8_t>(addr, value); }
 };
 
 enum class CoreExecStatus {

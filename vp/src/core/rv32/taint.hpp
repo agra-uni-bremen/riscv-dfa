@@ -100,7 +100,7 @@ class Taint {
 		memset(id, 0, sizeof(T));
 	}
 
-	Taint(const T other, Taintlevel taint) {
+	Taint(const T other, const Taintlevel taint) {
 		// DEBUG(std::cout << "Construct from basetype " << int(other) << " with taint " << int(taint) << std::endl);
 		value = other;
 		memset(id, taint, sizeof(T));
@@ -110,12 +110,7 @@ class Taint {
 		Taintlevel taint = ar[0].getTaintId();
 		for (uint8_t i = 0; i < sizeof(T); i++) {
 			if (taint != ar[i].getTaintId()) {
-				if (taint == 0) {
-					std::cerr << "unaligned confine on Taint Objects?" << std::endl;
-					taint = ar[i].getTaintId();
-				} else {
-					throw(TaintingException("Unaligned confine on different tainted Objects"));
-				}
+				taint = mergeTaintingValues(taint, ar[i].getTaintId());
 			}
 			// magic that relies that value is first byte in ar[i]
 			reinterpret_cast<uint8_t*>(&value)[i] = ar[i].require(taint);

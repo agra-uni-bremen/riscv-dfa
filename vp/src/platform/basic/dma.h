@@ -111,7 +111,7 @@ struct SimpleDMA : public sc_core::sc_module {
 		}
 	}
 
-	void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay) {
+	void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time&) {
 		auto addr = trans.get_address();
 		auto cmd = trans.get_command();
 		auto len = trans.get_data_length();

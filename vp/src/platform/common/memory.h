@@ -45,7 +45,6 @@ struct TaintedMemory : public sc_core::sc_module {
 
 	void write_data(unsigned addr, const Taint<uint8_t> *src, unsigned num_bytes) {
 		assert(addr + num_bytes <= size);
-		//todo: This will allow lower-sec infos. Is this OK?
 		memcpy((void*)(data + addr), src, num_bytes * sizeof(Taint<uint8_t>));
 	}
 
