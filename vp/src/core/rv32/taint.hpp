@@ -57,53 +57,43 @@ inline std::string to_string(const Taintlevel& level) {
 template <typename T>
 class Taint {
 	T value;
-	Taintlevel id[sizeof(T)];
+	Taintlevel id;
 
    public:
 	void setTaintId(Taintlevel taintID) {
 		if (!allowed(taintID, getTaintId())) {
 			throw(TaintingException("Invalid setTaint from " + to_string(getTaintId()) + " to " + to_string(taintID)));
 		}
-		memset(id, mergeTaintingValues(getTaintId(), taintID), sizeof(T));
+		id = mergeTaintingValues(getTaintId(), taintID);
 	}
 
 	Taintlevel getTaintId() const {
-		uint8_t taintID = id[0];
-		for (uint8_t i = 1; i < sizeof(T); i++) {
-			if (taintID != id[i]) {
-				throw(TaintingException("Unaligned read on Taint Object"));
-			}
-		}
-		return taintID;
+		return id;
 	}
 
 	Taint() {
 		// DEBUG(std::cout << "Construct empty" << std::endl);
 		// intentionally left value undefined
-		id[0] = 0;
-		if (sizeof(T) > 1)  // Most instances will be uint8_t -> Size 1
-		{
-			memset(id, 0, sizeof(T));
-		}
+		id = 0;
 	}
 
 	Taint(const Taint<T>& other) {
 		// DEBUG(std::cout << "Construct from Taint " << int(other.value) << " id (" << int(other.getTaintId()) << ")"
 		// << std::endl);
 		value = other.value;
-		memcpy(id, other.id, sizeof(T));
+		id = other.id;
 	}
 
 	Taint(const T other) {
 		// DEBUG(std::cout << "Construct from basetype " << int(other) << std::endl);
 		value = other;
-		memset(id, 0, sizeof(T));
+		id = 0;
 	}
 
 	Taint(const T other, const Taintlevel taint) {
 		// DEBUG(std::cout << "Construct from basetype " << int(other) << " with taint " << int(taint) << std::endl);
 		value = other;
-		memset(id, taint, sizeof(T));
+		id = taint;
 	}
 
 	Taint(Taint<uint8_t> ar[sizeof(T)]) {
@@ -115,7 +105,7 @@ class Taint {
 			// magic that relies that value is first byte in ar[i]
 			reinterpret_cast<uint8_t*>(&value)[i] = ar[i].require(taint);
 		}
-		memset(id, taint, sizeof(T));
+		id = taint;
 	}
 
 	friend void swap(Taint<T>& lhs, Taint<T>& rhs) {
@@ -320,8 +310,8 @@ class Taint {
 
 	// debugging only
 	T peek() {
-		if (id[0] != 0) {
-			std::cout << "Warning: Peeking into Object with taint ID " << Taintlevel(id[0]) << std::endl;
+		if (id != 0) {
+			std::cout << "Warning: Peeking into Object with taint ID " << Taintlevel(id) << std::endl;
 		}
 		return value;
 	}

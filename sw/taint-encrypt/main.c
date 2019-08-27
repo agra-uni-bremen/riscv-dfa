@@ -71,7 +71,7 @@ uint8_t key[blksz];
 
 enum MergeStrategy {
 	forbidden = 0b00000000,
-	highest = 0b10000000,
+	highest   = 0b10000000,
 };
 
 int main()

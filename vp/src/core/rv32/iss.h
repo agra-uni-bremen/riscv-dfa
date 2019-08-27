@@ -193,24 +193,23 @@ struct DataMemoryProxy : public data_memory_interface {
 	    : dmi(dmi), next_memory(next_memory), quantum_keeper(keeper) {}
 
 	template <typename T>
-	inline T _load_data(addr_t addr) {
+	inline Taint<T> _load_data(addr_t addr) {
 		if (addr >= dmi.offset && addr < dmi.size) {
 			assert((addr - dmi.offset + sizeof(T)) <= dmi.size);
 
 			quantum_keeper.inc(access_delay);
 
-			T ans = *((T *)(dmi.mem + (addr - dmi.offset)));
-			return ans;
+			return Taint<T>(dmi.mem + (addr - dmi.offset));
 		} else {
-			if (std::is_same<T, Taint<int8_t>>::value) {
+			if (std::is_same<T, int8_t>::value) {
 				return next_memory->load_byte(addr);
-			} else if (std::is_same<T, Taint<int16_t>>::value) {
+			} else if (std::is_same<T, int16_t>::value) {
 				return next_memory->load_half(addr);
-			} else if (std::is_same<T, Taint<int32_t>>::value) {
+			} else if (std::is_same<T, int32_t>::value) {
 				return next_memory->load_word(addr);
-			} else if (std::is_same<T, Taint<uint16_t>>::value) {
+			} else if (std::is_same<T, uint16_t>::value) {
 				return next_memory->load_uhalf(addr);
-			} else if (std::is_same<T, Taint<uint8_t>>::value) {
+			} else if (std::is_same<T, uint8_t>::value) {
 				return next_memory->load_ubyte(addr);
 			} else {
 				assert(false && "unsupported load operation");
@@ -219,19 +218,20 @@ struct DataMemoryProxy : public data_memory_interface {
 	}
 
 	template <typename T>
-	inline void _store_data(addr_t addr, T value) {
+	inline void _store_data(addr_t addr, Taint<T> value) {
 		if (addr >= dmi.offset && addr < dmi.size) {
 			assert((addr - dmi.offset + sizeof(T)) <= dmi.size);
 
 			quantum_keeper.inc(access_delay);
 
-			*((T *)(dmi.mem + (addr - dmi.offset))) = value;
+			value.expand(dmi.mem + (addr - dmi.offset));
+
 		} else {
-			if (std::is_same<T, Taint<uint8_t>>::value) {
+			if (std::is_same<T, uint8_t>::value) {
 				next_memory->store_byte(addr, value);
-			} else if (std::is_same<T, Taint<uint16_t>>::value) {
+			} else if (std::is_same<T, uint16_t>::value) {
 				next_memory->store_half(addr, value);
-			} else if (std::is_same<T, Taint<uint32_t>>::value) {
+			} else if (std::is_same<T, uint32_t>::value) {
 				next_memory->store_word(addr, value);
 			} else {
 				assert(false && "unsupported store operation");
@@ -239,11 +239,11 @@ struct DataMemoryProxy : public data_memory_interface {
 		}
 	}
 
-	virtual Taint<int32_t> load_word(addr_t addr) { return _load_data<Taint<int32_t>>(addr); }
-	virtual Taint<int32_t> load_half(addr_t addr) { return _load_data<Taint<int16_t>>(addr); }
-	virtual Taint<int32_t> load_byte(addr_t addr) { return _load_data<Taint<int8_t>>(addr); }
-	virtual Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<Taint<uint16_t>>(addr); }
-	virtual Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<Taint<uint8_t>>(addr); }
+	virtual Taint<int32_t> load_word(addr_t addr) { return _load_data<int32_t>(addr); }
+	virtual Taint<int32_t> load_half(addr_t addr) { return _load_data<int16_t>(addr); }
+	virtual Taint<int32_t> load_byte(addr_t addr) { return _load_data<int8_t>(addr); }
+	virtual Taint<uint32_t> load_uhalf(addr_t addr) { return _load_data<uint16_t>(addr); }
+	virtual Taint<uint32_t> load_ubyte(addr_t addr) { return _load_data<uint8_t>(addr); }
 
 	virtual void store_word(addr_t addr, Taint<uint32_t> value) { _store_data(addr, value); }
 	virtual void store_half(addr_t addr, Taint<uint16_t> value) { _store_data(addr, value); }
@@ -278,7 +278,6 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
 	template <typename T>
 	inline Taint<T> _load_data(addr_t addr) {
 		Taint<uint8_t> arr[sizeof(T)];
-		memset(arr, 0, sizeof(Taint<uint8_t>) * sizeof(T));
 		_do_transaction(tlm::TLM_READ_COMMAND, addr, arr, sizeof(T));
 		return Taint<T>(arr);
 	}
