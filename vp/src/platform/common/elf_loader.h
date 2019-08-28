@@ -116,6 +116,8 @@ struct ELFLoader {
 				}
 			}
 		}
+		//for(uint8_t i = 0; i < 4; i++)
+		//	dst[i] = Taint<uint8_t>(0, MergeStrategy::lowest + 2);
 	}
 
 	uint32_t get_memory_end() {

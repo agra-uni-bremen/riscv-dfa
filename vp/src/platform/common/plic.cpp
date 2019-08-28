@@ -65,7 +65,7 @@ int PLIC::hart_0_get_next_pending_interrupt(bool consider_threshold) {
 
 	for (int i = 1; i < NUM_INTERRUPTS; ++i) {
 		assert(i / 32 <= 1);
-		if (irqs[i / 32] & (1 << i)) {
+		if (irqs[i / 32] & (1 << i%32)) {
 			auto prio = interrupt_priorities[i];
 			if (prio > 0 && (!consider_threshold || (prio > hart_0_priority_threshold))) {
 				if (prio > max_priority) {

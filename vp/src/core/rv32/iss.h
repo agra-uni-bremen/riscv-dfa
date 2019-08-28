@@ -278,6 +278,7 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
 	template <typename T>
 	inline Taint<T> _load_data(addr_t addr) {
 		Taint<uint8_t> arr[sizeof(T)];
+		memset(arr, 0, sizeof(T) * sizeof(Taint<uint8_t>));
 		_do_transaction(tlm::TLM_READ_COMMAND, addr, arr, sizeof(T));
 		return Taint<T>(arr);
 	}

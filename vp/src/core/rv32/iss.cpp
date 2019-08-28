@@ -252,7 +252,7 @@ Opcode::Mapping ISS::exec_step() {
 			case Opcode::LW: {
 				uint32_t addr = regs[instr.rs1()] + instr.I_imm();
 				regs[instr.rd()] = mem->load_word(addr);
-				DEBUG(std::cout << "\t = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") -> "
+				DEBUG(std::cout << "\t = *(" << regs[instr.rs1()].peek() << " + " << instr.S_imm() << ") -> "
 				                << *reinterpret_cast<uint32_t *>(&regs[instr.rd()]) << std::endl);
 				break;
 			}
@@ -260,8 +260,8 @@ Opcode::Mapping ISS::exec_step() {
 			case Opcode::LBU: {
 				uint32_t addr = regs[instr.rs1()] + instr.I_imm();
 				regs[instr.rd()] = mem->load_ubyte(addr);
-				DEBUG(std::cout << "\t = *(" << regs[instr.rs1()] << " + " << instr.S_imm() << ") -> "
-				                << *reinterpret_cast<uint32_t *>(&regs[instr.rd()]) << std::endl);
+				DEBUG(std::cout << "\t = *(" << regs[instr.rs1()].peek() << " + " << instr.S_imm() << ") -> "
+				                << regs[instr.rd()].peek() << std::endl);
 				break;
 			}
 
@@ -438,8 +438,9 @@ Opcode::Mapping ISS::exec_step() {
 			case Opcode::REMU: {
 				auto a = regs[instr.rs1()];
 				auto b = regs[instr.rs2()];
-				if (b == 0) {
+				if ((b == Taint<int32_t>(0)).peek()) {
 					regs[instr.rd()] = a;
+					regs[instr.rd()].setTaintId(b.getTaintId());
 				} else {
 					regs[instr.rd()] = a.as<uint32_t>() % b.as<uint32_t>();
 				}

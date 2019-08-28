@@ -8,7 +8,7 @@
 #include "flash.h"
 #include "gdb_stub.h"
 #include "iss.h"
-#include "memory.h"
+#include "platform/common/memory.h"
 #include "plic.h"
 #include "sensor.h"
 #include "sensor2.h"

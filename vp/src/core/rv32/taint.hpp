@@ -238,6 +238,14 @@ class Taint {
 		return ret;
 	}
 
+	Taint<T> operator%(const Taint<T>& other) {
+		return Taint<T>(value % other.value, mergeTaintingValues(getTaintId(), other.getTaintId()));;
+	}
+
+	Taint<T> operator%(const T& other) {
+		return Taint<T>(value % other, getTaintId());
+	}
+
 	Taint<T> operator^(const Taint<T>& other) {
 		Taint<T> ret(value ^ other.value, mergeTaintingValues(getTaintId(), other.getTaintId()));
 		return ret;
@@ -311,7 +319,7 @@ class Taint {
 	// debugging only
 	T peek() {
 		if (id != 0) {
-			std::cout << "Warning: Peeking into Object with taint ID " << Taintlevel(id) << std::endl;
+			std::cout << "Warning: Peeking into Object with taint " << to_string(id) << std::endl;
 		}
 		return value;
 	}

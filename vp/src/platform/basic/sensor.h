@@ -98,12 +98,12 @@ struct SimpleSensor : public sc_core::sc_module {
 			// fill with random data
 			for (auto &n : data_frame) {
 				if (filter == 1) {
-					n = Taint<uint32_t>(rand() % 10 + 48, taint);
+					n = Taint<uint8_t>(rand() % 10 + 48, taint);
 				} else if (filter == 2) {
-					n = Taint<uint32_t>(rand() % 26 + 65, taint);
+					n = Taint<uint8_t>(rand() % 26 + 65, taint);
 				} else {
 					// fallback for all other filter values
-					n = Taint<uint32_t>(rand() % 92 + 32, taint);  // random printable char
+					n = Taint<uint8_t>(rand() % 92 + 32, taint);  // random printable char
 				}
 			}
 
