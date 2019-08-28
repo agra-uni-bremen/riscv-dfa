@@ -44,7 +44,7 @@ struct Options {
 	addr_t secmem_start_addr = 0x22000000;
 	addr_t secmem_size       = 1024;
 	addr_t secmem_end_addr   = secmem_start_addr + secmem_size;
-	uint8_t secmem_taint     = MergeStrategy::highest;				//highest + zero
+	uint8_t secmem_taint     = MergeStrategy::highest + 1;				//strategy 'highest' level 1
 	addr_t plic_start_addr = 0x40000000;
 	addr_t plic_end_addr = 0x41000000;
 	addr_t sensor_start_addr = 0x50000000;
