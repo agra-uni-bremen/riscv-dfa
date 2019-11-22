@@ -102,9 +102,12 @@ Opcode::Mapping ISS::exec_step() {
 				break;
 
 			case Opcode::SETTAINT_R:
-				regs[instr.rd()].setTaintId(regs[instr.rs1()]);
+			{
+				uint8_t id = regs[instr.rs1()].require(MergeStrategy::lowest + 1);
+				regs[instr.rd()] = regs[instr.rd()].require(MergeStrategy::highest + 0xf);
+				regs[instr.rd()].setTaintId(id);
 				break;
-
+			}
 			case Opcode::GETTAINT:
 				regs[instr.rd()] = regs[instr.rs1()].getTaintId();
 				break;
