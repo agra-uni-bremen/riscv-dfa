@@ -34,13 +34,17 @@ attacks = [(-4, 'Direct', 'Stack', 'Function Pointer (param)'),
 for counter, attack in enumerate(attacks, 1):
     print(str(counter) + ": " + attack[1] + " " + attack[2] + " on " + attack[3], end="\n\t")
     try:
-        #os.system("riscv-vp atts --parameter " + str(attack))
         output = subprocess.check_output("riscv-vp atts --parameter " + str(attack[0]) + " 2> /dev/null", shell=True)
         if "ATTACK successful" in str(output):
             print ("Oh no, attack " + str(attack[0]) + " was successful")
             exit (-1)
-        else:
+        elif "Invalid tainting operation" in str(output):
+            print ("Attack " + str(attack[0]) + " prevented")
+        elif "Attack prevented" in str(output):
             print ("Attack " + str(attack[0]) + " not applicable")
+        else:
+            print ("Attack " + str(attack[0]) + " error")
+            print (output)
     except subprocess.CalledProcessError as e:
         if "Invalid tainting operation" in str(e.output):
             print ("Attack " + str(attack[0]) + " prevented")
