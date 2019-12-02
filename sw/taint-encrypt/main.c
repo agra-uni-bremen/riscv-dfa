@@ -65,17 +65,25 @@ void printHex(uint8_t* data, uint16_t size)
 }
 
 #define blksz 45
-uint8_t ciphertext[blksz];
-uint8_t plaintext[blksz];
-uint8_t key[blksz];
+uint8_t blocks[3][blksz];
+uint8_t* ciphertext = blocks[0];
+uint8_t* plaintext  = blocks[1];
+uint8_t* key        = blocks[2];
 
 enum MergeStrategy {
 	forbidden = 0b00000000,
 	highest   = 0b10000000,
 };
 
+static volatile uint8_t plaintext_taint = highest | 1;
+static volatile uint8_t key_taint = highest | 2;
+static volatile uint8_t zero_taint = 0xff; //To force the 0 into trusted mem region
+
+
 int main()
 {
+	zero_taint ^=zero_taint;    //To force the 0 into trusted mem region
+
 	printf("Plaintext at %4p\n", plaintext);
 	printf("Key       at %4p\n", key);
 	printf("Cipher    at %4p\n", ciphertext);
@@ -83,8 +91,8 @@ int main()
 	strcpy(key,       "MeineOmaFaehrtImHuenerstallMotor");
 	strcpy(plaintext, "Dies ist ein sehr geheimer Text.");
 
-	setTaint(plaintext, highest | 1, blksz);
-	setTaint(key      , highest | 2, blksz);
+	setTaint(plaintext, plaintext_taint, blksz);
+	setTaint(key      , key_taint, blksz);
 
 	printf("Before crypt:\n");
 	printf("Plaintext has taint: %u\n", getTaint(plaintext));
@@ -103,9 +111,7 @@ int main()
 	printf("Cipher    has taint: %u\n", getTaint(ciphertext));
 
 
-	return 0;
-	//todo: do this in downgrader
-	setTaint(ciphertext, 0, blksz);
+	setTaint(ciphertext, zero_taint, blksz);
 
 	//this would fail
 	//printHex(ciphertext, strlen(plaintext))

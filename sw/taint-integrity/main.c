@@ -34,7 +34,7 @@ void hashFunction(uint8_t* challenge, uint8_t* key, uint8_t* response, uint16_t 
 	}
 }
 
-void readUart(uint8_t* dst, uint16_t size)
+void readCan(uint8_t* dst, uint16_t size)
 {
 	static char uartInput[] = "?/5~=K9fNGJ'vE{NsbGtW+7+&*gN}5[>";
 	for(uint16_t i = 0; i < size; i++)
@@ -99,7 +99,7 @@ const uint8_t* volatile SECMEM = (uint8_t*) 0x22000000;
 
 int main()
 {
-	readUart(a, blksz);
+	readCan(a, blksz);
 	cpy(b, SECMEM, blksz);
 
 	memset(c, 0, blksz);

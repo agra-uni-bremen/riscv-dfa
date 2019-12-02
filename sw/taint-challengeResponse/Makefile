@@ -1,5 +1,5 @@
-all : main.c
-	riscv32-unknown-elf-gcc -g main.c -o main -march=rv32ima
+all : main.c irq.c irq.h bootstrap.S
+	riscv32-unknown-elf-gcc main.c irq.c bootstrap.S -o main -nostartfiles -Wl,--no-relax
 
 clean:
 	rm -f main

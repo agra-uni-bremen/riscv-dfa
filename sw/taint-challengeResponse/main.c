@@ -1,5 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include "irq.h"
+
+const uint8_t* volatile SECMEM = (uint8_t*) 0x22000000;
+//Using Sensor random data as model for CAN message
+const uint8_t* volatile CAN_PACKET = (uint8_t*) 0x50000000;
+static volatile uint32_t * const CAN_TAINT_REG_ADDR  = (uint32_t * const)0x50000088;
+
 
 void setTaint(uint8_t* word, uint8_t const taint, uint16_t const size)
 {
@@ -34,12 +41,21 @@ void hashFunction(uint8_t* challenge, uint8_t* key, uint8_t* response, uint16_t 
 	}
 }
 
-void readUart(uint8_t* dst, uint16_t size)
+_Bool has_can_data = 0;
+void can_irq_handler() {
+	has_can_data = 1;
+}
+
+void readCan(uint8_t* dst, uint16_t size)
 {
-	static char uartInput[] = "?/5~=K9fNGJ'vE{NsbGtW+7+&*gN}5[>";
+	while (!has_can_data) {
+		asm volatile ("wfi");
+	}
+	has_can_data = 0;
+
 	for(uint16_t i = 0; i < size; i++)
 	{
-		dst[i] = uartInput[i % 32];
+		dst[i] = *(CAN_PACKET + i);
 	}
 }
 
@@ -91,21 +107,25 @@ void printHex(uint8_t* data, uint16_t size)
 }
 
 #define blksz 45
-uint8_t challenge[blksz];
-uint8_t pin      [blksz];
-uint8_t response [blksz];
-
-const uint8_t* volatile SECMEM = (uint8_t*) 0x22000000;
+uint8_t blocks[3][blksz];
+uint8_t* challenge = blocks[0];
+uint8_t* pin       = blocks[1];
+uint8_t* response  = blocks[2];
 
 enum MergeStrategy {
 	forbidden = 0b00000000,
 	highest   = 0b10000000,
 };
 
+
 int main()
 {
-	readUart(challenge, blksz);
-	cpy(pin, SECMEM, blksz);
+	*CAN_TAINT_REG_ADDR = 0;
+	register_interrupt_handler(2, can_irq_handler);
+
+
+	readCan(challenge, blksz);			//Receive message
+	cpy(pin, SECMEM, blksz);			//Read secret key from memory
 
 	printf("Before calculation:\n");
 	printf("Challenge has taint: %u\n", getTaint(challenge));
@@ -123,10 +143,10 @@ int main()
 	printf("Pin       has taint: %u\n", getTaint(pin));
 	printf("Response  has taint: %u\n", getTaint(response));
 
-	//these would fail
+	//Forgotten debug functions
 	//	printf("%10s\n", pin);
 	//	printHex(pin, blksz);
-	//	printHex(response, blksz);
+	//	printHex(blocks, blksz*3);
 
 	writeSecureUart(response, blksz);
 
