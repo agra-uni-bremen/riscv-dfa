@@ -1,7 +1,12 @@
-RISC-V based Virtual Prototype
+RISC-V based Data Flow Analysis (RISCV-DFA)
 ==============================
 
-The RISC-V based Virtual Prototype (VP) integrates a RISC-V RV32IM core, a PLIC-based interrupt controller and an essential set of peripherals together with SW debug capabilities. The VP is designed as extensible and configurable platform with a generic bus system and implemented in standard-compliant SystemC and TLM-2.0. For more information please visit http://www.systemc-verification.org/ or contact <riscv@systemc-verification.org>. In the following we provide build instructions and how to compile and run software on the VP.
+The RISC-V based Data Flow Analysis Tool is a fork of the original [Virtual Prototype](https://github.com/agra-uni-bremen/riscv-vp).
+It extends the existing RISC-V RV32IM core and peripherals to track guest memory even in CPU and peripherals and enforce a given security policy, defined by a lattice.
+
+The VP is designed as extensible and configurable platform with a generic bus system and implemented in standard-compliant SystemC and TLM-2.0.
+For more information please visit http://www.systemc-verification.org/ or contact <riscv@systemc-verification.org>.
+In the following we provide build instructions and how to compile and run software on the VP.
 
 
 1) Build the RISC-V GNU Toolchain:
@@ -37,21 +42,7 @@ make
 2) Build this RISC-V Virtual Prototype:
 ---------------------------------------
 
-i) in *vp/dependencies* folder (will download and compile SystemC):
-
-```bash
-./build_systemc_232.sh
-```
-
-
-ii) in *vp* folder (requires the *boost* C++ library):
- 
-```bash
-mkdir build
-cd build
-cmake ..
-make
-```
+i) in root folder, run `make`. This will download and build systemC-2.4.2 and the main executable.
 
 
 3) Compile and run some Software:
