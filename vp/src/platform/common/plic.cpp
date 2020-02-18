@@ -94,7 +94,7 @@ void PLIC::register_access_callback(const vp::map::register_access_t &r) {
 		// std::cout << "[vp::plic] claim interrupt " << min_id << std::endl;
 	}
 
-	r.fn();  // FIXME: This is probably not compatible with Tainting scheme
+	r.fn();
 
 	if (r.write && r.vptr == &hart_0_claim_response) {
 		// NOTE: on completed response, check if there are any other pending interrupts
