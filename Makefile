@@ -6,7 +6,7 @@ vps: vp/build/Makefile vp/dependencies/systemc-dist
 vp/dependencies/systemc-dist:
 	cd vp/dependencies/ && ./build_systemc_232.sh
 
-all: vps vp-display
+all: vps
 
 vp/build/Makefile:
 	mkdir vp/build || true
@@ -18,9 +18,7 @@ vp-clean:
 sysc-clean:
 	rm -rf vp/dependencies/systemc*
 
-clean-all: vp-clean qt-clean sysc-clean
-
-clean: vp-clean
+clean: vp-clean sysc-clean
 
 codestyle:
 	find . -name "*.h*" -o -name "*.cpp" | xargs clang-format -i -style=file      #file is .clang-format
