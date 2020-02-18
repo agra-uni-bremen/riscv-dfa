@@ -3,6 +3,11 @@ RISC-V based Data Flow Analysis (RISCV-DFA)
 
 The RISC-V based Data Flow Analysis Tool is a fork of the original [Virtual Prototype](https://github.com/agra-uni-bremen/riscv-vp).
 It extends the existing RISC-V RV32IM core and peripherals to track guest memory even in CPU and peripherals and enforce a given security policy, defined by a lattice.
+The main differences to existing DFA-Tools are:
+1. The dynamic analysis in an embedded system down to machine code
+2. Our model includes peripherals common to embedded systems such as DMA, Interrupts and UARTs
+3. The tainting mechanism supports an arbitrary amount of security classes, including (but not limited to) integrity and confidentiality models.
+
 
 The VP is designed as extensible and configurable platform with a generic bus system and implemented in standard-compliant SystemC and TLM-2.0.
 For more information please visit http://www.systemc-verification.org/ or contact <riscv@systemc-verification.org>.
