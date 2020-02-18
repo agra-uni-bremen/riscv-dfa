@@ -79,7 +79,7 @@ struct SyscallHandler {
 
 	Taint<uint8_t> *guest_to_host_pointer(const void *addr) {
 		assert(mem != nullptr);
-		return mem + (reinterpret_cast<const uint64_t>(addr) - mem_offset);
+		return mem + (reinterpret_cast<uint64_t>(addr) - mem_offset);
 	}
 
 	typedef unsigned long int ulong;

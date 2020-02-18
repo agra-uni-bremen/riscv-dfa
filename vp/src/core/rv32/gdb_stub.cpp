@@ -20,7 +20,6 @@
 #include <boost/lexical_cast.hpp>
 
 std::string debug_memory_mapping::read_memory(unsigned start, int nbytes) {
-	assert(start >= 0);
 	assert(nbytes > 0);
 
 	uint32_t read_offset = boost::lexical_cast<uint32_t>(start);
@@ -34,7 +33,7 @@ std::string debug_memory_mapping::read_memory(unsigned start, int nbytes) {
 		stream << std::setfill('0') << std::hex;
 		for (uint32_t i = 0; i < read_size; ++i) {
 			Taint<uint8_t> byte = mem[local_offset + i];
-			stream << std::setw(2) << (unsigned)byte.peek();
+			stream << std::setw(2) << static_cast<unsigned>(byte.peek());
 		}
 	} else {
 		for (uint32_t i = 0; i < read_size; ++i) {
@@ -59,7 +58,6 @@ std::string debug_memory_mapping::zero_memory(int nbytes) {
 }
 
 void debug_memory_mapping::write_memory(unsigned start, int nbytes, const std::string &data) {
-	assert(start >= 0);
 	assert(nbytes > 0);
 	assert(data.length() % 2 == 0);
 
@@ -73,7 +71,7 @@ void debug_memory_mapping::write_memory(unsigned start, int nbytes, const std::s
 
 	for (unsigned i = 0; i < write_size; ++i) {
 		std::string bytes = data.substr(i * 2, 2);
-		uint8_t byte = (uint8_t)std::strtol(bytes.c_str(), NULL, 16);
+		uint8_t byte = std::strtoul(bytes.c_str(), NULL, 16);
 		mem[local_offset + i] = byte;
 	}
 }
@@ -116,7 +114,7 @@ std::string DebugCoreRunner::receive_packet(int conn) {
 		std::cerr << "recv error" << strerror(errno) << std::endl;
 		return std::string("err");
 	}
-	assert(nbytes <= bufsize);
+	assert(abs(nbytes) <= bufsize);	//nbytes > 0
 
 	// std::cout << "recv: " << buffer << std::endl;
 

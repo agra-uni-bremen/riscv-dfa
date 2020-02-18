@@ -1,18 +1,18 @@
 #include <cstdlib>
 #include <ctime>
 
-#include "basic_timer.h"
 #include "core/common/clint.h"
-#include "dma.h"
-#include "elf_loader.h"
-#include "flash.h"
-#include "gdb_stub.h"
-#include "iss.h"
+#include "platform/common/elf_loader.h"
+#include "core/rv32/gdb_stub.h"
+#include "core/rv32/iss.h"
 #include "platform/common/memory.h"
-#include "plic.h"
+#include "platform/common/plic.h"
+#include "dma.h"
+#include "flash.h"
 #include "sensor.h"
 #include "sensor2.h"
 #include "terminal.h"
+#include "basic_timer.h"
 
 #include <boost/io/ios_state.hpp>
 #include <boost/program_options.hpp>

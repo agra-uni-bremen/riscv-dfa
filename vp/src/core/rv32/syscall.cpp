@@ -117,7 +117,7 @@ int sys_write(SyscallHandler *sys, int fd, const void *buf, size_t count) {
 
 	uint8_t tmp[count];
 
-	for (int i = 0; i < count; i++) {
+	for (unsigned i = 0; i < count; i++) {
 		tmp[i] = p[i];  // This may throw if Byte is tainted.
 	}
 
@@ -188,7 +188,7 @@ int sys_time(SyscallHandler *sys, rv32g_time_t *tloc) {
 }
 
 // TODO: add support for additional syscalls if necessary
-int SyscallHandler::execute_syscall(ulong n, ulong _a0, ulong _a1, ulong _a2, ulong _a3) {
+int SyscallHandler::execute_syscall(ulong n, ulong _a0, ulong _a1, ulong _a2, ulong) {
 	// NOTE: when linking with CRT, the most basic example only calls *gettimeofday* and finally *exit*
 
 	switch (n) {
