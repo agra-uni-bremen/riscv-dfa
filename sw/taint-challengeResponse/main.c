@@ -131,36 +131,63 @@ uint8_t* challenge = blocks[0];
 uint8_t* pin       = blocks[1];
 uint8_t* response  = blocks[2];
 
+
+void test(uint32_t testnr)
+{
+	//this would fail
+	//
+	//
+	//
+	//
+	//
+
+	switch (testnr)
+	{
+	case 1:
+		//Buffer overflow
+		printHex(challenge + blksz, blksz);
+		break;
+	case 2:
+		//Forgotten debug function
+		printf("%10s\n", pin);
+		break;
+	case 3:
+		printHex(pin, blksz);
+		break;
+	case 4:
+		printHex(pin, blksz);
+		break;
+	case 5:
+		// "Memory dump"
+		printHex(*blocks, blksz*3);
+		break;
+	default:
+		//none
+		break;
+	}
+}
+
 int main()
 {
 	*CAN_TAINT_REG_ADDR = 0;
 	register_interrupt_handler(2, can_irq_handler);
 
+	cpy(pin, SECMEM, blksz);			//Read secret key from memory
 	initKeyAes(pin, blksz);
 
 	readCan(challenge, blksz);			//Receive message
-	cpy(pin, SECMEM, blksz);			//Read secret key from memory
 
-	printf("Before calculation:\n");
 	printf("Challenge has taint: %u\n", getTaint(challenge));
 	printf("Pin       has taint: %u\n", getTaint(pin));
 	printf("Response  has taint: %u\n", getTaint(response));
 
+	printf("Challenge :\n");
 	printHex(challenge, blksz);
 	aesEncrypt(challenge, response, blksz);
 
-	//this would fail
-	//	printHex(challenge + blksz, blksz);
 
-	printf("After crypt:\n");
-	printf("Challenge has taint: %u\n", getTaint(challenge));
-	printf("Pin       has taint: %u\n", getTaint(pin));
-	printf("Response  has taint: %u\n", getTaint(response));
-
-	//Forgotten debug functions
-	//	printf("%10s\n", pin);
-	//	printHex(pin, blksz);
-	//	printHex(blocks, blksz*3);
+	int choice = *(uint32_t*)(0x1FFFFFC);
+	test(choice);
 
 	writeSecureUart(response, blksz);
 

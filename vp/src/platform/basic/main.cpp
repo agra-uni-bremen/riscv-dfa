@@ -144,7 +144,7 @@ int sc_main(int argc, char **argv) {
 	CLINT clint("CLINT");
 	SimpleSensor sensor("SimpleSensor", 2);
 	SimpleSensor2 sensor2("SimpleSensor2", 5);
-	AES aes("simple aes");
+	AES aes("SimpleAes");
 	BasicTimer timer("BasicTimer", 3);
 	SimpleDMA dma("SimpleDMA", 4);
 

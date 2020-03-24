@@ -75,7 +75,7 @@ struct AES : public sc_core::sc_module {
 					{
 						//This downgrades the confidential data
 						//Here, you would need to show the quality of encryption
-						data_frame[i] = (data_frame[i] ^ key_frame[i]).require(MergeStrategy::highest);
+						data_frame[i] = (data_frame[i] ^ key_frame[i]).require(MergeStrategy::highest + 2);
 					}
 					break;
 				case 02: //decrypt mockup
