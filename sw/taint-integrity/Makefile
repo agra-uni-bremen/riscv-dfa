@@ -10,7 +10,7 @@ clean:
 	rm -f main atts
 
 sim: all
-	riscv-vp main
+	riscv-dfa main
 
 test: atts
 	./test_suite.py
