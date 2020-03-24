@@ -85,6 +85,11 @@ struct ELFLoader {
 		std::vector<const Elf32_Phdr *> sections;
 
 		for (int i = 0; i < hdr->e_phnum; ++i) {
+			if(hdr->e_phoff + hdr->e_phentsize * i > elf.size())
+			{
+				throw std::runtime_error ("Invalid ELF Header");
+			}
+
 			const Elf32_Phdr *p =
 			    reinterpret_cast<const Elf32_Phdr *>(elf.data() + hdr->e_phoff + hdr->e_phentsize * i);
 

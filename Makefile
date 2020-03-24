@@ -10,7 +10,7 @@ all: vps
 
 vp/build/Makefile:
 	mkdir vp/build || true
-	cd vp/build && cmake -DCMAKE_BUILD_TYPE=Debug ..
+	cd vp/build && AFL_USE_ASAN=1 CC=afl-gcc CXX=afl-g++ LD=afl-gcc--disable-shared cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 vp-clean:
 	rm -rf vp/build

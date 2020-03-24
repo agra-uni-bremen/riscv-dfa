@@ -10,6 +10,7 @@
 #include "dma.h"
 #include "flash.h"
 #include "sensor.h"
+#include "aes.h"
 #include "sensor2.h"
 #include "terminal.h"
 #include "basic_timer.h"
@@ -51,6 +52,8 @@ struct Options {
 	addr_t sensor_end_addr = 0x50001000;
 	addr_t sensor2_start_addr = 0x50002000;
 	addr_t sensor2_end_addr = 0x50004000;
+	addr_t aes_start_addr = 0x51000000;
+	addr_t aes_end_addr   = 0x51001000;
 	addr_t dma_start_addr = 0x70000000;
 	addr_t dma_end_addr = 0x70001000;
 
@@ -134,13 +137,14 @@ int sc_main(int argc, char **argv) {
 		secmem.data[i] = Taint<uint8_t>(i & 0xFF, opt.secmem_taint);
 	}
 	ELFLoader loader(opt.input_program.c_str());
-	SimpleBus<2, 9> bus("SimpleBus");
+	SimpleBus<2, 10> bus("SimpleBus");
 	CombinedMemoryInterface iss_mem_if("MemoryInterface", core.quantum_keeper);
 	SyscallHandler sys;
 	PLIC plic("PLIC");
 	CLINT clint("CLINT");
 	SimpleSensor sensor("SimpleSensor", 2);
 	SimpleSensor2 sensor2("SimpleSensor2", 5);
+	AES aes("simple aes");
 	BasicTimer timer("BasicTimer", 3);
 	SimpleDMA dma("SimpleDMA", 4);
 
@@ -162,6 +166,7 @@ int sc_main(int argc, char **argv) {
 	bus.ports[6] = new PortMapping(opt.dma_start_addr, opt.dma_end_addr);
 	bus.ports[7] = new PortMapping(opt.sensor2_start_addr, opt.sensor2_end_addr);
 	bus.ports[8] = new PortMapping(opt.secmem_start_addr, opt.secmem_end_addr);
+	bus.ports[9] = new PortMapping(opt.aes_start_addr, opt.aes_end_addr);
 
 	loader.load_executable_image(mem.data, mem.size, opt.mem_start_addr);
 	core.init(instr_mem_if, data_mem_if, &clint, &sys, loader.get_entrypoint(),
@@ -180,6 +185,7 @@ int sc_main(int argc, char **argv) {
 	bus.isocks[6].bind(dma.tsock);
 	bus.isocks[7].bind(sensor2.tsock);
 	bus.isocks[8].bind(secmem.tsock);
+	bus.isocks[9].bind(aes.tsock);
 
 	// connect interrupt signals/communication
 	plic.target_hart = &core;

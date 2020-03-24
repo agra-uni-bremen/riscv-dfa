@@ -7,6 +7,11 @@ const uint8_t* volatile SECMEM = (uint8_t*) 0x22000000;
 const uint8_t* volatile CAN_PACKET = (uint8_t*) 0x50000000;
 static volatile uint32_t * const CAN_TAINT_REG_ADDR  = (uint32_t * const)0x50000088;
 
+uint8_t* const volatile AES_ACTION = (uint8_t*) 0x51000000;
+uint8_t* const volatile AES_KEY    = (uint8_t*) 0x51000004;
+uint8_t* const volatile AES_MEM    = (uint8_t*) 0x51000044;
+const uint8_t AES_BLOCKSIZE = 64;
+
 
 void setTaint(uint8_t* word, uint8_t const taint, uint16_t const size)
 {
@@ -33,12 +38,26 @@ uint8_t getTaint(uint8_t* const word)
 	return taintval;
 }
 
-void hashFunction(uint8_t* challenge, uint8_t* key, uint8_t* response, uint16_t size)
+void initKeyAes(uint8_t* key, uint16_t size)
 {
-	for(uint16_t i = 0; i < size; i++)
+	if(size > AES_BLOCKSIZE)
 	{
-		response[i] = challenge[i] ^ key[i];
+		puts("Key too big for configured blocksize! Truncating.\n");
 	}
+	memcpy(AES_KEY, key, size);
+}
+
+void aesEncrypt(uint8_t* input, uint8_t* output, uint16_t size)
+{
+	if(size > AES_BLOCKSIZE)
+	{
+		puts("Key too big for configured blocksize!\n");
+		return;
+	}
+	memcpy(AES_MEM, input, size);
+	*AES_ACTION = 1;	//Encrypt with declassification
+	while(*AES_ACTION != 0){};
+	memcpy(output, AES_MEM, size);
 }
 
 _Bool has_can_data = 0;
@@ -112,17 +131,12 @@ uint8_t* challenge = blocks[0];
 uint8_t* pin       = blocks[1];
 uint8_t* response  = blocks[2];
 
-enum MergeStrategy {
-	forbidden = 0b00000000,
-	highest   = 0b10000000,
-};
-
-
 int main()
 {
 	*CAN_TAINT_REG_ADDR = 0;
 	register_interrupt_handler(2, can_irq_handler);
 
+	initKeyAes(pin, blksz);
 
 	readCan(challenge, blksz);			//Receive message
 	cpy(pin, SECMEM, blksz);			//Read secret key from memory
@@ -133,7 +147,7 @@ int main()
 	printf("Response  has taint: %u\n", getTaint(response));
 
 	printHex(challenge, blksz);
-	hashFunction(challenge, pin, response, blksz);
+	aesEncrypt(challenge, response, blksz);
 
 	//this would fail
 	//	printHex(challenge + blksz, blksz);

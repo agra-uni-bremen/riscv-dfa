@@ -5,4 +5,4 @@ clean:
 	rm -f main
 
 sim: all
-	riscv-vp main
+	riscv-dfa main
