@@ -6,6 +6,9 @@
 #define RISCV_MACHINE_TIMER_INTERRUPT 7
 #define RISCV_MACHINE_EXTERNAL_INTERRUPT 11
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 static volatile uint32_t * const PLIC_CLAIM_AND_RESPONSE_REGISTER = (uint32_t * const)0x40200004;
 
@@ -65,3 +68,7 @@ void register_interrupt_handler(uint32_t irq_id, irq_handler_t fn) {
 void register_timer_interrupt_handler(irq_handler_t fn) {
     timer_irq_handler = fn;
 }
+
+#ifdef __cplusplus
+}
+#endif

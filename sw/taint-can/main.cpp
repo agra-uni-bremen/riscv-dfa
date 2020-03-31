@@ -61,18 +61,24 @@ void aesEncrypt(uint8_t* input, uint8_t* output, uint16_t size)
 	memcpy(output, AES_MEM, size);
 }
 
-_Bool has_can_data = 0;
+bool has_can_data = 0;
 void can_irq_handler() {
 	has_can_data = 1;
 }
 
-void readCan(uint8_t* dst)
+void readCan(can::Frame& dst)
 {
 	while (!has_can_data) {
 		asm volatile ("wfi");
 	}
 	has_can_data = 0;
-	memcpy(dst, CAN_PACKET, sizeof(can::Frame));
+	memcpy(&dst, CAN_PACKET, sizeof(can::Frame));
+}
+
+
+void writeCan(const can::Frame& src)
+{
+	//todo: do something
 }
 
 void writeSecureUart(uint8_t* response, uint16_t size)
@@ -167,37 +173,51 @@ int main()
 
 	while(true)
 	{
-		can::Frame frame;
-		readCan(&frame);			//Receive message
-		switch(frame.id)
+		can::Frame qFrame;
+		can::Frame rFrame;
+		memset(&qFrame, 0, sizeof(can::Frame));
+		memset(&rFrame, 0, sizeof(can::Frame));		//TODO: Maybe make this a bug?
+
+		readCan(qFrame);			//Receive message
+		switch(qFrame.id)
 		{
 		case obd::sae_standard_query:
 		{
-			//TODO: Handle;
-			auto obd = reinterpret_cast<obd::Query>(frame.data);
-
-			switch(obd.additionalBytes)
+			auto obdQuery = reinterpret_cast<obd::Query&>(qFrame.data);
+			auto obdResp = reinterpret_cast<obd::Response&>(rFrame.data);
+			switch(obdQuery.service)
 			{
-			case 2:	//standard
-				switch(obd.service)
+			case obd::Service::show_current_data:
+				switch(obdQuery.pid)
 				{
-				case obd::Service::show_current_data:
-					//todo; do stuff;
+				case obd::PID::supported_pids_01_20:
+				case obd::PID::supported_pids_21_40:
+				case obd::PID::supported_pids_41_60:
+					//blindly support all pids
+					obdResp.additionalBytes = 6;
+					obdResp.service = static_cast<obd::Service>(obdQuery.service + 0x40);
+					obdResp.normal.pid = obdQuery.pid;
+					memset(obdResp.normal.val, 0xff, 4);
 					break;
 				default:
 					//error handling!
+					break;
 				}
 				break;
-			case 3:
-				//vehicle specific
 			default:
 				//error handling!
+				break;
 			}
+			rFrame.len = 1+obdResp.additionalBytes;
 			break;
 		}
 		default:
 			//Ignore
+			break;
 		}
+
+		writeCan(rFrame);
+
 	}
 
 

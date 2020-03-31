@@ -26,7 +26,7 @@ struct Frame
 namespace obd
 {
 
-enum class Service : uint8_t
+enum Service : uint8_t
 {
 	show_current_data = 1,
 	show_freeze_frame_data,
@@ -39,7 +39,7 @@ enum class Service : uint8_t
 	show_permanent_dtcs
 };
 
-enum class PID : uint8_t
+enum PID : uint8_t
 {
 	supported_pids_01_20 = 0,
 	monitor_status,
