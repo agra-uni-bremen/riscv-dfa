@@ -60,10 +60,12 @@ enum PID : uint8_t
 
 };
 
-enum class ExtendedPID : uint16_t
+enum ExtendedPID : uint16_t
 {
-	show_current_data = 1,
+	login = 1,
+
 	//FIXME: No vehicle specifics in open standards
+	dump_mem,	//whoops?
 };
 
 static constexpr can::ID sae_standard_query=0x7DF;

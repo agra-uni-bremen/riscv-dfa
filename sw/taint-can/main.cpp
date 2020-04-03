@@ -188,24 +188,51 @@ int main()
 			switch(obdQuery.service)
 			{
 			case obd::Service::show_current_data:
-				switch(obdQuery.pid)
+				obdResp.service = static_cast<obd::Service>(obdQuery.service + 0x40);
+				obdResp.additionalBytes = 2;		//min offset of response
+				if(obdResp.additionalBytes == 2)	//standard
 				{
-				case obd::PID::supported_pids_01_20:
-				case obd::PID::supported_pids_21_40:
-				case obd::PID::supported_pids_41_60:
-					//blindly support all pids
-					obdResp.additionalBytes = 6;
-					obdResp.service = static_cast<obd::Service>(obdQuery.service + 0x40);
 					obdResp.normal.pid = obdQuery.pid;
-					memset(obdResp.normal.val, 0xff, 4);
-					break;
-				default:
-					//error handling!
-					break;
+					switch(obdQuery.pid)
+					{
+					case obd::PID::supported_pids_01_20:
+					case obd::PID::supported_pids_21_40:
+					case obd::PID::supported_pids_41_60:
+						//blindly support all pids
+						obdResp.additionalBytes += 4;
+						memset(obdResp.normal.val, 0xff, 4);
+						break;
+					case obd::PID::calculated_engine_load:
+						obdResp.additionalBytes += 1;
+						obdResp.normal.val[0] = 0xBA;		//Static Random Number
+					default:
+						//error handling!
+						break;
+					}
+				} else if(obdResp.additionalBytes == 3)		//Vehicle specific
+				{
+					obdResp.extended.epid = obdQuery.epid;
+					switch(obdQuery.epid)
+					{
+					case obd::ExtendedPID::login:
+						//TODO: Some Challenge Response
+						//println("Login with code 0x%04X", *reinterpret_cast<uint16_t*>())
+						break;
+					case obd::ExtendedPID::dump_mem:
+						obdResp.additionalBytes += 4;
+						memcpy(obdResp.extended.val, pin, 4);
+					default:
+						//error handling!
+						break;
+					}
 				}
 				break;
 			default:
-				//error handling!
+				/*
+				 * TODO: Maybe forgotten error handler?
+				 * Here, we dont write anything to the "hardcoded" answer.
+				 * Maybe, we send uninitialized and "secret" data by not overwriting
+				 */
 				break;
 			}
 			rFrame.len = 1+obdResp.additionalBytes;
