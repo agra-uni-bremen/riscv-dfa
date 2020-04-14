@@ -128,11 +128,13 @@ void printHex(uint8_t* data, uint16_t size)
 	}
 }
 
-#define blksz 45
-uint8_t blocks[3][blksz];
-uint8_t* challenge = blocks[0];
-uint8_t* pin       = blocks[1];
-uint8_t* response  = blocks[2];
+static constexpr uint8_t max_num_trouble_codes = 32;
+#define blksz 45	//Note that 32*2=64, which makes this 2*blocksize
+uint8_t blocks[((max_num_trouble_codes*sizeof(obd::DTC))/blksz)+3][blksz];	//BUG: Only reserves one slot for dtcs!
+uint8_t* dtc_mem = blocks[0];
+uint8_t* challenge = blocks[(max_num_trouble_codes*sizeof(obd::DTC))/blksz];
+uint8_t* pin       = blocks[(max_num_trouble_codes*sizeof(obd::DTC))/blksz+1];
+uint8_t* response  = blocks[(max_num_trouble_codes*sizeof(obd::DTC))/blksz+2];
 
 
 void test(uint32_t testnr)
@@ -173,8 +175,8 @@ int main()
 
 	while(true)
 	{
-		can::Frame qFrame;
-		can::Frame rFrame;
+		can::Frame qFrame;		//query
+		can::Frame rFrame;		//response
 		memset(&qFrame, 0, sizeof(can::Frame));
 		memset(&rFrame, 0, sizeof(can::Frame));		//TODO: Maybe make this a bug?
 
@@ -185,10 +187,10 @@ int main()
 		{
 			auto obdQuery = reinterpret_cast<obd::Query&>(qFrame.data);
 			auto obdResp = reinterpret_cast<obd::Response&>(rFrame.data);
+			obdResp.service = static_cast<obd::Service>(obdQuery.service + 0x40);
 			switch(obdQuery.service)
 			{
 			case obd::Service::show_current_data:
-				obdResp.service = static_cast<obd::Service>(obdQuery.service + 0x40);
 				obdResp.additionalBytes = 2;		//min offset of response
 				if(obdResp.additionalBytes == 2)	//standard
 				{
@@ -218,15 +220,37 @@ int main()
 						//TODO: Some Challenge Response
 						//println("Login with code 0x%04X", *reinterpret_cast<uint16_t*>())
 						break;
-					case obd::ExtendedPID::dump_mem:
+					case obd::ExtendedPID::dump_mem:	//First Bug, unauth. memdump
 						obdResp.additionalBytes += 4;
-						memcpy(obdResp.extended.val, pin, 4);
+						//normally this would print whole blocks in multiple messages
+						memcpy(obdResp.extended.val, pin, 4); // short form
 					default:
 						//error handling!
 						break;
 					}
 				}
 				break;
+			case obd::Service::show_stored_dtcs:
+				//normally, this would be encapsulated in ISO 15765-2
+				obdResp.additionalBytes = 6;
+				//second bug: this will overlap with the other memory block!
+				for(unsigned tc = 0; tc < max_num_trouble_codes;)
+				{
+					for(unsigned j = 0; j > 3; j++)
+					{
+						if(tc < max_num_trouble_codes)
+						{
+							memcpy(&obdResp.normal.val[j], &dtc_mem[tc/sizeof(obd::DTC)], sizeof(obd::DTC));
+						}
+						else
+						{	//max num reached
+							memset(&obdResp.normal.val[j], 0, sizeof(obd::DTC));
+						}
+						tc++;
+					}
+					if(tc < max_num_trouble_codes)
+						writeCan(rFrame);		//last frame will be transmitted at end of switch/case
+				}
 			default:
 				/*
 				 * TODO: Maybe forgotten error handler?
@@ -238,6 +262,7 @@ int main()
 			rFrame.len = 1+obdResp.additionalBytes;
 			break;
 		}
+
 		default:
 			//Ignore
 			break;

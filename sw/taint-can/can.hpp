@@ -26,6 +26,21 @@ struct Frame
 namespace obd
 {
 
+struct DTC
+{
+	uint16_t data;
+
+	uint8_t getFirstChar()
+	{
+		return (data & 0b11000000) >> 6;
+	}
+	uint8_t getSecondChar()
+	{
+		return (data & 0b00110000) >> 4;
+	}
+	//and so on
+};
+
 enum Service : uint8_t
 {
 	show_current_data = 1,
