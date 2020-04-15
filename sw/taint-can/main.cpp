@@ -3,10 +3,11 @@
 #include "irq.h"
 #include "can.hpp"
 
-const uint8_t* volatile SECMEM = (uint8_t*) 0x22000000;
-//Using Sensor random data as model for CAN message
-const uint8_t* volatile CAN_PACKET = (uint8_t*) 0x50000000;
-static volatile uint32_t * const CAN_TAINT_REG_ADDR  = (uint32_t * const)0x50000088;
+auto const volatile SECMEM   = reinterpret_cast<uint8_t*>(0x22000000);
+static uint32_t const CAN_BASE =0x30000000;
+auto const volatile CAN_OFFS = *reinterpret_cast<uint32_t*>(CAN_BASE);
+auto const volatile CAN_LEN  = *reinterpret_cast<uint32_t*>(CAN_BASE+sizeof(uint32_t));
+auto const volatile CAN_DATA = reinterpret_cast<uint8_t*>(CAN_BASE+CAN_OFFS);
 
 uint8_t* const volatile AES_ACTION = (uint8_t*) 0x51000000;
 uint8_t* const volatile AES_KEY    = (uint8_t*) 0x51000004;
@@ -66,13 +67,13 @@ void can_irq_handler() {
 	has_can_data = 1;
 }
 
-void readCan(can::Frame& dst)
+bool readCan(can::Frame& dst)
 {
-	while (!has_can_data) {
-		asm volatile ("wfi");
-	}
-	has_can_data = 0;
-	memcpy(&dst, CAN_PACKET, sizeof(can::Frame));
+	static unsigned p = 0;
+	if(p + sizeof(can::Frame) > CAN_LEN)
+		return false;	//no data to read
+	memcpy(&dst, CAN_DATA + p, sizeof(can::Frame));
+	return true;
 }
 
 
@@ -167,7 +168,6 @@ void test(uint32_t testnr)
 
 int main()
 {
-	*CAN_TAINT_REG_ADDR = 0;
 	register_interrupt_handler(2, can_irq_handler);
 
 	cpy(pin, SECMEM, blksz);			//Read secret key from memory
