@@ -14,6 +14,7 @@
 #include "sensor2.h"
 #include "terminal.h"
 #include "basic_timer.h"
+#include "file_loader.h"
 
 #include <boost/io/ios_state.hpp>
 #include <boost/program_options.hpp>
@@ -30,6 +31,7 @@ struct Options {
 
 	std::string input_program;
 	std::string test_signature;
+	std::string parameter_file;
 	int32_t parameter = 0;
 
 	addr_t mem_size = 1024 * 1024 * 32;  // 32 MB ram, to place it before the CLINT and run the base examples (assume
@@ -46,6 +48,8 @@ struct Options {
 	addr_t secmem_size       = 1024;
 	addr_t secmem_end_addr   = secmem_start_addr + secmem_size;
 	uint8_t secmem_taint     = MergeStrategy::highest + 1;				//strategy 'highest' level 1
+	addr_t file_loader_sa	= 0x30000000;
+	addr_t file_loader_ea	= 0x3F000000;
 	addr_t plic_start_addr = 0x40000000;
 	addr_t plic_end_addr = 0x41000000;
 	addr_t sensor_start_addr = 0x50000000;
@@ -90,7 +94,8 @@ Options parse_command_line_arguments(int argc, char **argv) {
 		    "use-instr-dmi", po::bool_switch(&opt.use_instr_dmi), "use dmi to fetch instructions")(
 		    "use-data-dmi", po::bool_switch(&opt.use_data_dmi), "use dmi to execute load/store operations")(
 		    "use-dmi", po::bool_switch(), "use instr and data dmi")(
-		    "input-file", po::value<std::string>(&opt.input_program)->required(), "input file to use for execution")(
+			"input-file", po::value<std::string>(&opt.input_program)->required(), "input file to use for execution")(
+			"parameter-file", po::value<std::string>(&opt.parameter_file), "input file for parameter")(
 		    "signature", po::value<std::string>(&opt.test_signature)->default_value(""), "output filename for the test execution signature")(
 		    "parameter", po::value<int32_t>(&opt.parameter)->default_value(0), "parameter appearing at 0x1FFFFFC"
 		    );
@@ -137,7 +142,7 @@ int sc_main(int argc, char **argv) {
 		secmem.data[i] = Taint<uint8_t>(i & 0xFF, opt.secmem_taint);
 	}
 	ELFLoader loader(opt.input_program.c_str());
-	SimpleBus<2, 10> bus("SimpleBus");
+	SimpleBus<2, 11> bus("SimpleBus");
 	CombinedMemoryInterface iss_mem_if("MemoryInterface", core.quantum_keeper);
 	SyscallHandler sys;
 	PLIC plic("PLIC");
@@ -147,6 +152,7 @@ int sc_main(int argc, char **argv) {
 	AES aes("SimpleAes");
 	BasicTimer timer("BasicTimer", 3);
 	SimpleDMA dma("SimpleDMA", 4);
+	FileLoader fileParameter("ParameterFile", opt.parameter_file);
 
 	direct_memory_interface dmi({mem.data, opt.mem_start_addr, mem.size});
 	InstrMemoryProxy instr_mem(dmi, core.quantum_keeper);
@@ -157,16 +163,21 @@ int sc_main(int argc, char **argv) {
 	if (opt.use_instr_dmi) instr_mem_if = &instr_mem;
 	if (opt.use_data_dmi) data_mem_if = &data_mem;
 
-	bus.ports[0] = new PortMapping(opt.mem_start_addr, opt.mem_end_addr);
-	bus.ports[1] = new PortMapping(opt.term_start_addr, opt.term_end_addr);
-	bus.ports[2] = new PortMapping(opt.secterm_start_addr, opt.secterm_end_addr);
-	bus.ports[3] = new PortMapping(opt.plic_start_addr, opt.plic_end_addr);
-	bus.ports[4] = new PortMapping(opt.sensor_start_addr, opt.sensor_end_addr);
-	bus.ports[5] = new PortMapping(opt.clint_start_addr, opt.clint_end_addr);
-	bus.ports[6] = new PortMapping(opt.dma_start_addr, opt.dma_end_addr);
-	bus.ports[7] = new PortMapping(opt.sensor2_start_addr, opt.sensor2_end_addr);
-	bus.ports[8] = new PortMapping(opt.secmem_start_addr, opt.secmem_end_addr);
-	bus.ports[9] = new PortMapping(opt.aes_start_addr, opt.aes_end_addr);
+
+	{
+		unsigned i = 0;
+		bus.ports[i++] = new PortMapping(opt.mem_start_addr, opt.mem_end_addr);
+		bus.ports[i++] = new PortMapping(opt.term_start_addr, opt.term_end_addr);
+		bus.ports[i++] = new PortMapping(opt.secterm_start_addr, opt.secterm_end_addr);
+		bus.ports[i++] = new PortMapping(opt.plic_start_addr, opt.plic_end_addr);
+		bus.ports[i++] = new PortMapping(opt.sensor_start_addr, opt.sensor_end_addr);
+		bus.ports[i++] = new PortMapping(opt.clint_start_addr, opt.clint_end_addr);
+		bus.ports[i++] = new PortMapping(opt.dma_start_addr, opt.dma_end_addr);
+		bus.ports[i++] = new PortMapping(opt.sensor2_start_addr, opt.sensor2_end_addr);
+		bus.ports[i++] = new PortMapping(opt.secmem_start_addr, opt.secmem_end_addr);
+		bus.ports[i++] = new PortMapping(opt.aes_start_addr, opt.aes_end_addr);
+		bus.ports[i++] = new PortMapping(opt.aes_start_addr, opt.aes_end_addr);
+	}
 
 	loader.load_executable_image(mem.data, mem.size, opt.mem_start_addr);
 	core.init(instr_mem_if, data_mem_if, &clint, &sys, loader.get_entrypoint(),
@@ -176,17 +187,20 @@ int sc_main(int argc, char **argv) {
 	// connect TLM sockets
 	iss_mem_if.isock.bind(bus.tsocks[0]);
 	dma.isock.bind(bus.tsocks[1]);
-	bus.isocks[0].bind(mem.tsock);
-	bus.isocks[1].bind(term.tsock);
-	bus.isocks[2].bind(secterm.tsock);
-	bus.isocks[3].bind(plic.tsock);
-	bus.isocks[4].bind(sensor.tsock);
-	bus.isocks[5].bind(clint.tsock);
-	bus.isocks[6].bind(dma.tsock);
-	bus.isocks[7].bind(sensor2.tsock);
-	bus.isocks[8].bind(secmem.tsock);
-	bus.isocks[9].bind(aes.tsock);
-
+	{
+		unsigned i = 0;
+		bus.isocks[i++].bind(mem.tsock);
+		bus.isocks[i++].bind(term.tsock);
+		bus.isocks[i++].bind(secterm.tsock);
+		bus.isocks[i++].bind(plic.tsock);
+		bus.isocks[i++].bind(sensor.tsock);
+		bus.isocks[i++].bind(clint.tsock);
+		bus.isocks[i++].bind(dma.tsock);
+		bus.isocks[i++].bind(sensor2.tsock);
+		bus.isocks[i++].bind(secmem.tsock);
+		bus.isocks[i++].bind(aes.tsock);
+		bus.isocks[i++].bind(fileParameter.tsock);
+	}
 	// connect interrupt signals/communication
 	plic.target_hart = &core;
 	clint.target_hart = &core;
@@ -195,6 +209,7 @@ int sc_main(int argc, char **argv) {
 	timer.plic = &plic;
 	sensor2.plic = &plic;
 
+	//Special uint32_t parameter
 	for(unsigned i = 0; i < sizeof(int32_t); i++){
 		mem.data[0x1FFFFFC + i] = reinterpret_cast<uint8_t*>(&opt.parameter)[i];
 	}
