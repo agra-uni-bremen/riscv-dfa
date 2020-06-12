@@ -132,7 +132,7 @@ void printHex(uint8_t* data, uint16_t size)
 static constexpr uint8_t max_num_trouble_codes = 32;
 #define blksz 45	//Note that 32*2=64, which makes this 2*blocksize
 uint8_t blocks[((max_num_trouble_codes*sizeof(obd::DTC))/blksz)+3][blksz];	//BUG: Only reserves one slot for dtcs!
-uint8_t* dtc_mem = blocks[0];
+uint8_t* dtc_mem   = blocks[0];
 uint8_t* challenge = blocks[(max_num_trouble_codes*sizeof(obd::DTC))/blksz];
 uint8_t* pin       = blocks[(max_num_trouble_codes*sizeof(obd::DTC))/blksz+1];
 uint8_t* response  = blocks[(max_num_trouble_codes*sizeof(obd::DTC))/blksz+2];
@@ -154,9 +154,6 @@ void test(uint32_t testnr)
 		printHex(pin, blksz);
 		break;
 	case 4:
-		printHex(pin, blksz);
-		break;
-	case 5:
 		// "Memory dump"
 		printHex(*blocks, blksz*3);
 		break;
