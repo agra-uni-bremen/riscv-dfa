@@ -19,6 +19,7 @@ int main() {
 
 	uint8_t b = 10;
 	Taint<uint8_t> t = b;
+	b = 30;
 
 	uint8_t c = t;
 	assert(c == t);

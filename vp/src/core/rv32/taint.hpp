@@ -30,7 +30,8 @@ enum MergeStrategy : Taintlevel {
 	none      = 0b00000000,
 	lowest    = 0b01000000,
 	highest   = 0b10000000,
-	forbidden = 0b11000000
+	forbidden = 0b11000000,
+
 };
 
 inline std::string to_string(const Taintlevel& level) {
@@ -59,7 +60,7 @@ class Taint {
 	T value;
 	Taintlevel id;
 
-   public:
+public:
 	void setTaintId(Taintlevel taintID) {
 		if (!allowed(taintID, getTaintId())) {
 			throw(TaintingException("Invalid setTaint from " + to_string(getTaintId()) + " to " + to_string(taintID)));
@@ -71,10 +72,9 @@ class Taint {
 		return id;
 	}
 
-	Taint() {
+	Taint() : id(MergeStrategy::none){
 		// DEBUG(std::cout << "Construct empty" << std::endl);
 		// intentionally left value undefined
-		id = 0;
 	}
 
 	Taint(const Taint<T>& other) {
